@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-bootstrap-sql
+  namespace: oficina
+data:
+  init.sql: |
+    -- opcional: só se o DB/usuário ainda não existirem
+    -- CREATE DATABASE oficina;
+    -- CREATE USER oficina WITH ENCRYPTED PASSWORD :'OFICINA_PASSWORD';
+    -- GRANT ALL PRIVILEGES ON DATABASE oficina TO oficina;
