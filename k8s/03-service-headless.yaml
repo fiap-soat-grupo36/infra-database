@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-headless
+  namespace: oficina
+  labels:
+    app: postgresql
+spec:
+  clusterIP: None
+  selector:
+    app: postgresql
+  ports:
+    - name: pg
+      port: 5432
+      targetPort: 5432
