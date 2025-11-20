@@ -3,7 +3,7 @@
 ##################################################################
 
 data "kubectl_path_documents" "db_doc" {
-  pattern = "../k8s/db/*.yaml"
+  pattern = "${path.module}/k8s/*.yaml"
 }
 
 resource "kubectl_manifest" "db_manifest" {
