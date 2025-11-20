@@ -8,9 +8,6 @@ on:
     types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
-env:
-  TF_VAR_bastion_public_key: ${{ secrets.BASTION_PUBKEY }}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -35,7 +32,7 @@ jobs:
         with:
           aws-access-key-id: '${{ secrets.AWS_ACCESS_KEY_ID }}'
           aws-secret-access-key: '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
-          aws-region: us-east-2
+          aws-region: us-east-1
 
       - name: Set up Terraform CLI
         uses: hashicorp/setup-terraform@v3.1.2
@@ -98,7 +95,7 @@ jobs:
         with:
           aws-access-key-id: '${{ secrets.AWS_ACCESS_KEY_ID }}'
           aws-secret-access-key: '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
-          aws-region: us-east-2
+          aws-region: us-east-1
 
       - name: Set up Terraform CLI
         uses: hashicorp/setup-terraform@v3.1.2
