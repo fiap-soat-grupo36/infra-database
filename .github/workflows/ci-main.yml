@@ -8,9 +8,6 @@ on:
     types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
-env:
-  TF_VAR_bastion_public_key: ${{ secrets.BASTION_PUBKEY }}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
