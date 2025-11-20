@@ -56,6 +56,8 @@ spec:
         labels:
           app: postgresql
       spec:
+        # StorageClass is rendered from Terraform variable `storage_class`
+        storageClassName: oficina-gp2
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
