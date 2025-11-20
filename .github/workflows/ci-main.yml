@@ -129,6 +129,53 @@ jobs:
 
             console.log(`Created PR ${pr.data.html_url}`);
 
+  create_pr_develop_main:
+    name: "Create PR from develop to main"
+    runs-on: ubuntu-latest
+    needs: terraform
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create PR develop -> main
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = 'develop';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Check if an open PR from develop to main already exists
+            const { data: prs } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${branch}`,
+              base: 'main'
+            });
+
+            if (prs.length > 0) {
+              console.log(`PR already exists: ${prs[0].html_url}`);
+              return;
+            }
+
+            const title = `Merge develop into main`;
+            const body = `Automated PR created after successful CI on branch develop.`;
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              head: branch,
+              base: 'main',
+              title,
+              body,
+              draft: false
+            });
+
+            console.log(`Created PR ${pr.data.html_url}`);
+
   apply:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     name: "Create database"
