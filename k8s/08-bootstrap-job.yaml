@@ -1,0 +1,109 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-bootstrap
+  namespace: oficina
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          env:
+            # Conexão com o Postgres (superuser)
+            - name: PGHOST
+              value: postgresql-svc
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                configMapKeyRef:
+                  name: oficina-db-config
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: oficina-db-secret
+                  key: POSTGRES_PASSWORD
+
+            # Alvo de negócio
+            - name: OFICINA_DB
+              value: "oficina"
+            - name: OFICINA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: oficina-bootstrap-secret
+                  key: OFICINA_PASSWORD
+
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+
+          command: ["sh", "-lc"]
+          args:
+            - |
+              set -euo pipefail
+
+              # Aguarda o PostgreSQL ficar disponível
+              echo "[DB-BOOTSTRAP] Esperando PostgreSQL subir..."
+              until pg_isready -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}"; do
+                echo "Aguardando PostgreSQL..."
+                sleep 5
+              done
+
+              echo "[DB-BOOTSTRAP] Garantindo ROLE 'oficina'..."
+              ROLE_EXISTS="$$(psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='oficina'")"
+              if [ "$${ROLE_EXISTS:-}" != "1" ]; then
+                psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d postgres -v ON_ERROR_STOP=1 \
+                  -c "CREATE ROLE oficina LOGIN PASSWORD '$${OFICINA_PASSWORD}'"
+              else
+                psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d postgres -v ON_ERROR_STOP=1 \
+                  -c "ALTER ROLE oficina LOGIN PASSWORD '$${OFICINA_PASSWORD}'"
+              fi
+
+              echo "[DB-BOOTSTRAP] Garantindo DATABASE '$${OFICINA_DB}'..."
+              DB_EXISTS="$$(psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$${OFICINA_DB}'")"
+              if [ "$${DB_EXISTS:-}" != "1" ]; then
+                psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d postgres -v ON_ERROR_STOP=1 \
+                  -c "CREATE DATABASE $${OFICINA_DB} OWNER oficina"
+              fi
+
+              echo "[DB-BOOTSTRAP] Ajustando owner e GRANTs no schema public..."
+              # Dono do DB e privilégios (reafirma)
+              psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                -c "ALTER DATABASE \"$${OFICINA_DB}\" OWNER TO oficina"
+              psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                -c "GRANT ALL PRIVILEGES ON DATABASE \"$${OFICINA_DB}\" TO oficina"
+
+              # Schema 'public' -> owner 'oficina' + permissões para criar/usar
+              psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                -c "ALTER SCHEMA public OWNER TO oficina"
+              psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                -c "GRANT USAGE, CREATE ON SCHEMA public TO oficina"
+
+              # Defaults para objetos futuros
+              psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO oficina"
+              psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO oficina"
+
+              echo "[DB-BOOTSTRAP] Executando /sql/init.sql (se existir e não estiver vazio)..."
+              if [ -f /sql/init.sql ] && [ -s /sql/init.sql ]; then
+                psql -h "$${PGHOST}" -p "$${PGPORT}" -U "$${PGUSER}" -d "$${OFICINA_DB}" -v ON_ERROR_STOP=1 \
+                  -v OFICINA_PASSWORD="$${OFICINA_PASSWORD}" -v OFICINA_DB="$${OFICINA_DB}" \
+                  -f /sql/init.sql
+              else
+                echo "(init.sql ausente ou vazio — ignorado)"
+              fi
+
+              echo "[DB-BOOTSTRAP] OK"
+
+      volumes:
+        - name: sql
+          configMap:
+            name: db-bootstrap-sql
+            items:
+              - key: init.sql
+                path: init.sql
