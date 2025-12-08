@@ -5,6 +5,9 @@ data "aws_vpc" "main" {
   }
 }
 
-data "aws_subnet_ids" "from_vpc" {
-  vpc_id = data.aws_vpc.main.id
+data "aws_subnets" "from_vpc" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.main.id]
+  }
 }

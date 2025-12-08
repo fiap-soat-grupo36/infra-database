@@ -17,7 +17,7 @@ variable "db_username" {
 }
 
 variable "db_password" {
-  description = "Master password for the database (sensitive). If create_random_password is true, this can be omitted or empty." 
+  description = "Master password for the database (sensitive). If create_random_password is true, this can be omitted or empty."
   type        = string
   sensitive   = true
   default     = ""
@@ -60,13 +60,13 @@ variable "db_port" {
 }
 
 variable "db_subnet_ids" {
-  description = "Optional list of subnet IDs for the DB subnet group. If empty, all subnets in the VPC (data.aws_vpc.main) will be used." 
+  description = "Optional list of subnet IDs for the DB subnet group. If empty, all subnets in the VPC (data.aws_vpc.main) will be used."
   type        = list(string)
   default     = []
 }
 
 variable "allowed_cidrs" {
-  description = "CIDR blocks allowed to connect to the DB (ingress). Adjust for your network." 
+  description = "CIDR blocks allowed to connect to the DB (ingress). Adjust for your network."
   type        = list(string)
   default     = ["10.0.0.0/8"]
 }
@@ -84,7 +84,7 @@ variable "enable_secrets_manager" {
 }
 
 variable "create_secret_with_password" {
-  description = "If true, Terraform will create an initial Secret version with the generated/provided password. Note: the secret value will be stored in the Terraform state." 
+  description = "If true, Terraform will create an initial Secret version with the generated/provided password. Note: the secret value will be stored in the Terraform state."
   type        = bool
   default     = true
 }

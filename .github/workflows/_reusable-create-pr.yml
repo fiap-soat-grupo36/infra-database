@@ -1,0 +1,59 @@
+name: Reusable - Create PR
+
+on:
+  workflow_call:
+    inputs:
+      base:
+        required: true
+        type: string
+      head:
+        required: false
+        type: string
+
+jobs:
+  create_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Create Pull Request
+        uses: actions/github-script@v6
+        env:
+          BASE: ${{ inputs.base }}
+          HEAD: ${{ inputs.head }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = process.env.HEAD || context.ref.replace('refs/heads/', '');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Check if an open PR from this branch to the base already exists
+            const { data: prs } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${branch}`,
+              base: process.env.BASE
+            });
+
+            if (prs.length > 0) {
+              console.log(`PR already exists: ${prs[0].html_url}`);
+              return;
+            }
+
+            const title = `Merge ${branch} into ${process.env.BASE}`;
+            const body = `Automated PR created after successful CI on branch ${branch}.`;
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              head: branch,
+              base: process.env.BASE,
+              title,
+              body,
+              draft: false
+            });
+
+            console.log(`Created PR ${pr.data.html_url}`);
