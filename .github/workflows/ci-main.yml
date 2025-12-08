@@ -31,7 +31,7 @@ jobs:
   create_pr:
     uses: ./.github/workflows/_reusable-create-pr.yml
     needs: terraform
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')
+    if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/feature/' ) || startsWith(github.ref, 'refs/heads/hotfix/'))
     with:
       base: develop
 
