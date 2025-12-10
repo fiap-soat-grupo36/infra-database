@@ -23,8 +23,13 @@ output "rds_cluster_arn" {
   value       = aws_rds_cluster.this.arn
 }
 
-output "rds_secret_arn" {
-  description = "Secrets Manager secret ARN for DB credentials (if created)"
-  value       = try(aws_secretsmanager_secret.db[0].arn, "")
+output "rds_master_user_secret_arn" {
+  description = "ARN of the AWS-managed Secrets Manager secret containing master user credentials"
+  value       = try(aws_rds_cluster.this.master_user_secret[0].secret_arn, "")
+}
+
+output "rds_master_user_secret_status" {
+  description = "Status of the AWS-managed secret"
+  value       = try(aws_rds_cluster.this.master_user_secret[0].secret_status, "")
 }
 

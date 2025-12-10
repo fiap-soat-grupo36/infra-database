@@ -14,7 +14,7 @@ variable "db_username" {
   description = "Master username for the database"
   type        = string
   # Default changed to an underscore-based name to comply with RDS master user rules
-  default     = "app_admin"
+  default = "app_admin"
 
   validation {
     condition     = length(var.db_username) >= 1 && length(var.db_username) <= 16 && can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
@@ -22,18 +22,8 @@ variable "db_username" {
   }
 }
 
-variable "db_password" {
-  description = "Master password for the database (sensitive). If create_random_password is true, this can be omitted or empty."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
-variable "create_random_password" {
-  description = "If true, a random password will be generated and used for the DB. If false, db_password must be provided."
-  type        = bool
-  default     = true
-}
+# Password is now managed automatically by AWS Secrets Manager (manage_master_user_password = true)
+# No need to define db_password or create_random_password variables
 
 variable "db_instance_class" {
   description = "RDS instance class"
@@ -95,14 +85,8 @@ variable "tags" {
   default     = {}
 }
 
-variable "enable_secrets_manager" {
-  description = "Whether to create an AWS Secrets Manager secret for the DB credentials"
-  type        = bool
-  default     = true
-}
-
-variable "create_secret_with_password" {
-  description = "If true, Terraform will create an initial Secret version with the generated/provided password. Note: the secret value will be stored in the Terraform state."
-  type        = bool
-  default     = true
+variable "master_user_secret_kms_key_id" {
+  description = "KMS key ID to encrypt the automatically managed master user secret. If not specified, uses the default AWS managed key."
+  type        = string
+  default     = null
 }
