@@ -13,7 +13,13 @@ variable "db_name" {
 variable "db_username" {
   description = "Master username for the database"
   type        = string
-  default     = "application-admin"
+  # Default changed to an underscore-based name to comply with RDS master user rules
+  default     = "app_admin"
+
+  validation {
+    condition     = length(var.db_username) >= 1 && length(var.db_username) <= 16 && can(regex("^[a-zA-Z][a-zA-Z0-9_]*$", var.db_username))
+    error_message = "db_username must start with a letter, contain only letters/numbers/underscores, and be 1-16 characters long (engine-specific limits may apply)."
+  }
 }
 
 variable "db_password" {
