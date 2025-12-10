@@ -54,15 +54,3 @@ resource "aws_rds_cluster" "this" {
     Name = var.db_identifier
   }, var.tags)
 }
-
-resource "aws_rds_cluster_instance" "this" {
-  identifier         = "${var.db_identifier}-instance-1"
-  cluster_identifier = aws_rds_cluster.this.id
-  instance_class     = var.db_instance_class
-  engine             = var.engine
-  engine_version     = var.engine_version
-
-  tags = merge({
-    Name = "${var.db_identifier}-instance-1"
-  }, var.tags)
-}
