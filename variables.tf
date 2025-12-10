@@ -22,15 +22,6 @@ variable "db_username" {
   }
 }
 
-# Password is now managed automatically by AWS Secrets Manager (manage_master_user_password = true)
-# No need to define db_password or create_random_password variables
-
-variable "db_instance_class" {
-  description = "RDS instance class"
-  type        = string
-  default     = "db.t3.micro"
-}
-
 variable "allocated_storage" {
   description = "Allocated storage in GB"
   type        = number
@@ -56,13 +47,13 @@ variable "db_port" {
 }
 
 variable "serverless_min_capacity" {
-  description = "Minimum Aurora Serverless v2 capacity (ACU)"
+  description = "Minimum Aurora Serverless v2 capacity (ACU) - 0.5 ACU = ~1GB RAM, 1 vCPU"
   type        = number
   default     = 0.5
 }
 
 variable "serverless_max_capacity" {
-  description = "Maximum Aurora Serverless v2 capacity (ACU)"
+  description = "Maximum Aurora Serverless v2 capacity (ACU) - 1 ACU = ~2GB RAM, 2 vCPU"
   type        = number
   default     = 1
 }
