@@ -48,21 +48,33 @@ variable "allocated_storage" {
 }
 
 variable "engine" {
-  description = "Database engine"
+  description = "Database engine (aurora-postgresql or aurora-mysql)"
   type        = string
-  default     = "postgres"
+  default     = "aurora-postgresql"
 }
 
 variable "engine_version" {
-  description = "Engine version"
+  description = "Aurora engine version (e.g., 14.6 for aurora-postgresql, 8.0.mysql_aurora.3.02.0 for aurora-mysql)"
   type        = string
-  default     = "14"
+  default     = "14.6"
 }
 
 variable "db_port" {
   description = "Database port"
   type        = number
   default     = 5432
+}
+
+variable "serverless_min_capacity" {
+  description = "Minimum Aurora Serverless v2 capacity (ACU)"
+  type        = number
+  default     = 0.5
+}
+
+variable "serverless_max_capacity" {
+  description = "Maximum Aurora Serverless v2 capacity (ACU)"
+  type        = number
+  default     = 1
 }
 
 variable "db_subnet_ids" {

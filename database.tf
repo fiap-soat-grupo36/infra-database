@@ -38,24 +38,37 @@ resource "aws_security_group" "rds" {
   }, var.tags)
 }
 
-resource "aws_db_instance" "this" {
-  identifier        = var.db_identifier
-  allocated_storage = var.allocated_storage
-  engine            = var.engine
-  engine_version    = var.engine_version
-  instance_class    = var.db_instance_class
-  # Note: some provider versions don't accept the `name` attribute here.
-  # The initial database name can be created via other means if required.
-  username               = var.db_username
-  password               = local.db_password
-  port                   = var.db_port
-  db_subnet_group_name   = aws_db_subnet_group.rds.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = true
-  publicly_accessible    = false
+resource "aws_rds_cluster" "this" {
+  cluster_identifier      = var.db_identifier
+  engine                  = var.engine
+  engine_version          = var.engine_version
+  master_username         = var.db_username
+  master_password         = local.db_password
+  port                    = var.db_port
+  db_subnet_group_name    = aws_db_subnet_group.rds.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+  skip_final_snapshot     = true
+  database_name           = var.db_name
+  
+  serverlessv2_scaling_configuration {
+    min_capacity = var.serverless_min_capacity
+    max_capacity = var.serverless_max_capacity
+  }
 
   tags = merge({
     Name = var.db_identifier
+  }, var.tags)
+}
+
+resource "aws_rds_cluster_instance" "this" {
+  identifier         = "${var.db_identifier}-instance-1"
+  cluster_identifier = aws_rds_cluster.this.id
+  instance_class     = var.db_instance_class
+  engine             = var.engine
+  engine_version     = var.engine_version
+
+  tags = merge({
+    Name = "${var.db_identifier}-instance-1"
   }, var.tags)
 }
 
@@ -73,9 +86,11 @@ resource "aws_secretsmanager_secret_version" "db" {
 
   secret_id = aws_secretsmanager_secret.db[0].id
   secret_string = jsonencode({
-    username = var.db_username
-    password = local.db_password
-    host     = aws_db_instance.this.address
-    port     = aws_db_instance.this.port
+    username      = var.db_username
+    password      = local.db_password
+    host          = aws_rds_cluster.this.endpoint
+    reader_host   = aws_rds_cluster.this.reader_endpoint
+    port          = aws_rds_cluster.this.port
+    database_name = var.db_name
   })
 }
