@@ -1,4 +1,4 @@
-name: CI Orquestrador
+name: CI - Terraform
 
 on:
   push:
