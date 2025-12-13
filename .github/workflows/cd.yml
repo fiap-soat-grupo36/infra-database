@@ -1,4 +1,4 @@
-name: CD Orquestrador
+name: CD - Produção
 
 on:
   push:

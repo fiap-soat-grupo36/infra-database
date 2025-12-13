@@ -1,4 +1,4 @@
-name: CD Develop - Deploy DEV
+name: CD - Desenvolvimento
 
 on:
   push:
