@@ -1,4 +1,4 @@
-name: CD - Produção
+name: CD - Production
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   terraform-databases:
-    name: Deploy - Databases e Tabelas (PROD)
+    name: Deploy - Databases and Tables (PROD)
     uses: ./.github/workflows/_reusable-terraform.yml
     needs: terraform-cluster
     with:

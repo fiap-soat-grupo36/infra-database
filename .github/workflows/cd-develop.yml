@@ -1,4 +1,4 @@
-name: CD - Desenvolvimento
+name: CD - Develop
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   terraform-databases:
-    name: Deploy - Databases e Tabelas (DEV)
+    name: Deploy - Databases and Tables (DEV)
     uses: ./.github/workflows/_reusable-terraform.yml
     needs: terraform-cluster
     with:
@@ -37,7 +37,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   create_pr_to_main:
-    name: Criar PR para Main
+    name: Create PR to Main
     uses: ./.github/workflows/_reusable-create-pr.yml
     needs: [terraform-cluster, terraform-databases]
     if: success()

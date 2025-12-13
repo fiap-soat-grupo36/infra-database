@@ -3,9 +3,6 @@ name: CI - Terraform
 on:
   push:
     branches: [ develop, main, feature/**, hotfix/** ]
-  pull_request:
-    branches: [ main, develop ]
-    types: [ opened, synchronize, reopened ]
   workflow_dispatch:
 
 concurrency:
@@ -31,7 +28,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   terraform-databases:
-    name: CI - Databases e Tabelas
+    name: CI - Databases and Tables
     uses: ./.github/workflows/_reusable-terraform.yml
     needs: terraform-cluster
     with:
@@ -43,6 +40,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   create_pr_to_develop:
+    name: Create PR to Develop
     uses: ./.github/workflows/_reusable-create-pr.yml
     needs: [terraform-cluster, terraform-databases]
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/feature/' ) || startsWith(github.ref, 'refs/heads/hotfix/'))
