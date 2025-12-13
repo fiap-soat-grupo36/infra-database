@@ -43,6 +43,11 @@ resource "aws_rds_cluster" "this" {
   db_subnet_group_name          = aws_db_subnet_group.rds.name
   vpc_security_group_ids        = [aws_security_group.rds.id]
   skip_final_snapshot           = true
+  
+  # Janela de manutenção configurada para minimizar impacto em testes
+  preferred_maintenance_window = "sun:03:00-sun:04:00"
+  apply_immediately            = true
+  
   serverlessv2_scaling_configuration {
     min_capacity = var.serverless_min_capacity
     max_capacity = var.serverless_max_capacity
@@ -54,10 +59,12 @@ resource "aws_rds_cluster" "this" {
 }
 
 resource "aws_rds_cluster_instance" "instance" {
-  identifier          = "${var.db_identifier}-oficina-1"
-  cluster_identifier  = aws_rds_cluster.this.id
-  instance_class      = "db.serverless"
-  engine              = aws_rds_cluster.this.engine
-  engine_version      = aws_rds_cluster.this.engine_version
-  publicly_accessible = true
+  identifier                 = "${var.db_identifier}-oficina-1"
+  cluster_identifier         = aws_rds_cluster.this.id
+  instance_class             = "db.serverless"
+  engine                     = aws_rds_cluster.this.engine
+  engine_version             = aws_rds_cluster.this.engine_version
+  publicly_accessible        = true
+  auto_minor_version_upgrade = false
+  apply_immediately          = true
 }
