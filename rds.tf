@@ -44,7 +44,7 @@ resource "aws_rds_cluster" "this" {
   vpc_security_group_ids        = [aws_security_group.rds.id]
   skip_final_snapshot           = true
   database_name                 = var.db_name
-
+  enable_http_endpoint          = true
   serverlessv2_scaling_configuration {
     min_capacity = var.serverless_min_capacity
     max_capacity = var.serverless_max_capacity
@@ -53,4 +53,11 @@ resource "aws_rds_cluster" "this" {
   tags = merge({
     Name = var.db_identifier
   }, var.tags)
+}
+
+resource "aws_rds_cluster_instance" "instance" {
+  cluster_identifier = aws_rds_cluster.this.id
+  instance_class     = "db.serverless"
+  engine             = aws_rds_cluster.this.engine
+  engine_version     = aws_rds_cluster.this.engine_version
 }
