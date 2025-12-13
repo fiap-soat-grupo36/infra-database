@@ -35,3 +35,12 @@ jobs:
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  create_pr_to_main:
+    name: Criar PR para Main
+    uses: ./.github/workflows/_reusable-create-pr.yml
+    needs: [terraform-cluster, terraform-databases]
+    if: success()
+    with:
+      base: main
+      head: develop
