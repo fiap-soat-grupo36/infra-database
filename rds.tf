@@ -13,11 +13,11 @@ resource "aws_security_group" "rds" {
   vpc_id      = data.aws_vpc.main.id
 
   ingress {
-    description = "DB ingress"
+    description = "DB ingress from anywhere"
     from_port   = var.db_port
     to_port     = var.db_port
     protocol    = "tcp"
-    cidr_blocks = var.allowed_cidrs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
