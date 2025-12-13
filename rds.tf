@@ -43,7 +43,6 @@ resource "aws_rds_cluster" "this" {
   db_subnet_group_name          = aws_db_subnet_group.rds.name
   vpc_security_group_ids        = [aws_security_group.rds.id]
   skip_final_snapshot           = true
-  database_name                 = var.db_name
   enable_http_endpoint          = true
   serverlessv2_scaling_configuration {
     min_capacity = var.serverless_min_capacity
