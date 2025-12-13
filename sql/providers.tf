@@ -22,7 +22,7 @@ provider "postgresql" {
   port            = data.aws_rds_cluster.cluster.port
   username        = data.aws_rds_cluster.cluster.master_username
   password        = jsondecode(data.aws_secretsmanager_secret_version.db_password.secret_string)["password"]
-  database        = "postgres"  # Conecta no database padrão primeiro
+  database        = "postgres" # Conecta no database padrão primeiro
   sslmode         = "require"
   connect_timeout = 15
   superuser       = false

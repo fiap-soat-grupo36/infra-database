@@ -7,7 +7,7 @@ variable "cluster_identifier" {
 variable "environment" {
   description = "Ambiente de deploy (dev, prod)"
   type        = string
-  
+
   validation {
     condition     = contains(["dev", "prod"], var.environment)
     error_message = "O ambiente deve ser 'dev' ou 'prod'."

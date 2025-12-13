@@ -4,137 +4,25 @@ resource "postgresql_schema" "main" {
   database = postgresql_database.main.name
 }
 
-# Tabela de usuários
-resource "postgresql_table" "users" {
-  database = postgresql_database.main.name
-  schema   = postgresql_schema.main.name
-  name     = "users"
+# Executa o script SQL para criar as tabelas
+resource "null_resource" "create_tables" {
+  depends_on = [postgresql_schema.main]
 
-  columns = [
-    {
-      name     = "id"
-      type     = "SERIAL"
-      nullable = false
-    },
-    {
-      name     = "name"
-      type     = "VARCHAR(100)"
-      nullable = false
-    },
-    {
-      name     = "email"
-      type     = "VARCHAR(255)"
-      nullable = false
-    },
-    {
-      name     = "created_at"
-      type     = "TIMESTAMP"
-      nullable = false
-      default  = "CURRENT_TIMESTAMP"
-    }
-  ]
-
-  primary_key {
-    columns = ["id"]
-  }
-}
-
-# Tabela de produtos
-resource "postgresql_table" "products" {
-  database = postgresql_database.main.name
-  schema   = postgresql_schema.main.name
-  name     = "products"
-
-  columns = [
-    {
-      name     = "id"
-      type     = "SERIAL"
-      nullable = false
-    },
-    {
-      name     = "name"
-      type     = "VARCHAR(200)"
-      nullable = false
-    },
-    {
-      name     = "description"
-      type     = "TEXT"
-      nullable = true
-    },
-    {
-      name     = "price"
-      type     = "DECIMAL(10,2)"
-      nullable = false
-    },
-    {
-      name     = "stock"
-      type     = "INTEGER"
-      nullable = false
-      default  = "0"
-    },
-    {
-      name     = "created_at"
-      type     = "TIMESTAMP"
-      nullable = false
-      default  = "CURRENT_TIMESTAMP"
-    },
-    {
-      name     = "updated_at"
-      type     = "TIMESTAMP"
-      nullable = true
-    }
-  ]
-
-  primary_key {
-    columns = ["id"]
-  }
-}
-
-# Tabela de pedidos
-resource "postgresql_table" "orders" {
-  database = postgresql_database.main.name
-  schema   = postgresql_schema.main.name
-  name     = "orders"
-
-  columns = [
-    {
-      name     = "id"
-      type     = "SERIAL"
-      nullable = false
-    },
-    {
-      name     = "user_id"
-      type     = "INTEGER"
-      nullable = false
-    },
-    {
-      name     = "status"
-      type     = "VARCHAR(50)"
-      nullable = false
-      default  = "'pending'"
-    },
-    {
-      name     = "total"
-      type     = "DECIMAL(10,2)"
-      nullable = false
-    },
-    {
-      name     = "created_at"
-      type     = "TIMESTAMP"
-      nullable = false
-      default  = "CURRENT_TIMESTAMP"
-    }
-  ]
-
-  primary_key {
-    columns = ["id"]
+  triggers = {
+    schema_version = filemd5("${path.module}/scripts/schema.sql")
+    database_name  = postgresql_database.main.name
+    schema_name    = postgresql_schema.main.name
   }
 
-  foreign_key {
-    columns           = ["user_id"]
-    referenced_table  = postgresql_table.users.name
-    referenced_schema = postgresql_schema.main.name
-    referenced_columns = ["id"]
-    on_delete         = "CASCADE"
+  provisioner "local-exec" {
+    command = <<-EOT
+      PGPASSWORD="${jsondecode(data.aws_secretsmanager_secret_version.db_password.secret_string)["password"]}" \
+      psql -h ${data.aws_rds_cluster.cluster.endpoint} \
+           -p ${data.aws_rds_cluster.cluster.port} \
+           -U ${data.aws_rds_cluster.cluster.master_username} \
+           -d ${postgresql_database.main.name} \
+           -v schema_name=${postgresql_schema.main.name} \
+           -f ${path.module}/scripts/schema.sql
+    EOT
   }
 }
