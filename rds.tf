@@ -54,6 +54,7 @@ resource "aws_rds_cluster" "this" {
 }
 
 resource "aws_rds_cluster_instance" "instance" {
+  identifier          = "${var.db_identifier}-oficina-1"
   cluster_identifier  = aws_rds_cluster.this.id
   instance_class      = "db.serverless"
   engine              = aws_rds_cluster.this.engine
