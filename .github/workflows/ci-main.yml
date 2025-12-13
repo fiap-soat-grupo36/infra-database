@@ -2,7 +2,7 @@ name: CI Orquestrador
 
 on:
   push:
-    branches: [ feature/**, hotfix/** ]
+    branches: [ develop, main, feature/**, hotfix/** ]
   pull_request:
     branches: [ main, develop ]
     types: [ opened, synchronize, reopened ]
@@ -42,17 +42,9 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  create_pr:
+  create_pr_to_develop:
     uses: ./.github/workflows/_reusable-create-pr.yml
     needs: [terraform-cluster, terraform-databases]
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/feature/' ) || startsWith(github.ref, 'refs/heads/hotfix/'))
     with:
       base: develop
-
-  create_pr_develop_main:
-    uses: ./.github/workflows/_reusable-create-pr.yml
-    needs: [terraform-cluster, terraform-databases]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    with:
-      base: main
-      head: develop
