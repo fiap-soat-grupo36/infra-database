@@ -1,4 +1,11 @@
--- Schema para organizar as tabelas
+-- Cria o database se não existir
+SELECT 'CREATE DATABASE ${database_name}'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${database_name}')\gexec
+
+-- Conecta ao database
+\c ${database_name}
+
+-- Cria schema
 CREATE SCHEMA IF NOT EXISTS ${schema_name};
 
 -- Tabela de usuários
