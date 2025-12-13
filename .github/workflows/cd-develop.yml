@@ -1,8 +1,8 @@
-name: CD Orquestrador
+name: CD Develop - Deploy DEV
 
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,13 +25,13 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   terraform-databases:
-    name: Deploy - Databases e Tabelas (PROD)
+    name: Deploy - Databases e Tabelas (DEV)
     uses: ./.github/workflows/_reusable-terraform.yml
     needs: terraform-cluster
     with:
       working_directory: "sql"
       auto_apply: true
-      var_file: "environments/prod.tfvars"
+      var_file: "environments/dev.tfvars"
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

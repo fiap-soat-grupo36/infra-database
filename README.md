@@ -1,240 +1,187 @@
-# Criação do banco de dados (PostgreSQL)
+# Infraestrutura de Banco de Dados
 
-Este repositório provisiona os recursos necessários para rodar um PostgreSQL no cluster EKS da AWS, incluindo um StorageClass (EBS) e os manifests Kubernetes para deploy do banco.
+Este repositório contém a infraestrutura como código (Terraform) para provisionar e gerenciar o banco de dados Aurora PostgreSQL Serverless v2 na AWS.
 
-Conteúdo principal:
-
-- Terraform para provisionamento de recursos relacionados ao banco (backend, storage, database).
-- Manifests Kubernetes em `k8s/` para criar Secrets, ConfigMaps, Service, StatefulSet e Job de bootstrap.
-
-## Visão geral
-
-O banco escolhido é o PostgreSQL. A infraestrutura usa Terraform para criar recursos na AWS (quando aplicável) e os manifests em `k8s/` para subir o banco no EKS.
-
-> Observação: este repositório pressupõe que o cluster EKS já esteja criado. A configuração do cluster está em: [infra-kubernetes](https://github.com/fiap-soat-grupo36/infra-kubernetes)
-
-### Diagrama
-
-```mermaid
-erDiagram
-    CLIENTE {
-        BIGINT id PK
-        VARCHAR nome
-        VARCHAR cpf
-        VARCHAR cnpj
-        VARCHAR email
-        VARCHAR telefone
-        JSON endereco
-        TIMESTAMP data_cadastro
-        DATE data_nascimento
-        TEXT observacao
-        BOOLEAN ativo
-    }
-
-    VEICULO {
-        BIGINT id PK
-        VARCHAR placa
-        VARCHAR marca
-        VARCHAR modelo
-        INT ano
-        VARCHAR cor
-        TEXT observacoes
-        BIGINT cliente_id FK
-        TIMESTAMP data_cadastro
-        BOOLEAN ativo
-    }
-
-    ORCAMENTO {
-        BIGINT id PK
-        BIGINT cliente_id FK
-        DECIMAL valor_total
-        VARCHAR status_orcamento
-        TIMESTAMP data_criacao
-        TIMESTAMP data_aprovacao
-        TIMESTAMP data_reprovacao
-    }
-
-    ITEM_ORCAMENTO {
-        BIGINT id PK
-        BIGINT orcamento_id FK
-        BIGINT produto_id FK
-        DECIMAL valor_unitario
-        INT quantidade
-        DECIMAL subtotal
-    }
-
-    ORDEM_SERVICO {
-        BIGINT id PK
-        BIGINT cliente_id FK
-        BIGINT veiculo_id FK
-        VARCHAR status
-        TIMESTAMP criada_em
-    }
-
-    ITEM_ORDEM_SERVICO {
-        BIGINT id PK
-        BIGINT ordem_servico_id FK
-        BIGINT produto_id FK
-        BIGINT servico_id FK
-        DECIMAL valor_unitario
-        INT quantidade
-        TEXT observacao
-    }
-
-    PRODUTO {
-        BIGINT id PK
-        VARCHAR nome_produto
-        TEXT descricao_produto
-        VARCHAR categoria
-        BOOLEAN ativo
-        DECIMAL preco_final_venda
-    }
-
-    ESTOQUE_ITEM {
-        BIGINT id PK
-        BIGINT produto_id FK
-        INT quantidade
-    }
-
-    SERVICO {
-        BIGINT id PK
-        VARCHAR nome
-        TEXT descricao
-        DECIMAL preco
-        INT tempo_estimado_minutos
-        VARCHAR categoria
-        BOOLEAN ativo
-    }
-
-    USUARIO {
-        BIGINT id PK
-        VARCHAR username
-        VARCHAR nome
-        VARCHAR password_hash
-        VARCHAR role
-        BOOLEAN ativo
-    }
-
-    CLIENTE ||--o{ VEICULO : "possui"
-    CLIENTE ||--o{ ORCAMENTO : "abertura"
-    ORCAMENTO ||--o{ ITEM_ORCAMENTO : "contém"
-    PRODUTO ||--o{ ITEM_ORCAMENTO : "é referenciado por"
-    PRODUTO ||--|| ESTOQUE_ITEM : "tem"
-    CLIENTE ||--o{ ORDEM_SERVICO : "abre"
-    VEICULO ||--o{ ORDEM_SERVICO : "é usado em"
-    ORDEM_SERVICO ||--o{ ITEM_ORDEM_SERVICO : "contém"
-    PRODUTO ||--o{ ITEM_ORDEM_SERVICO : "pode referenciar"
-    SERVICO ||--o{ ITEM_ORDEM_SERVICO : "pode referenciar"
+## 📁 Estrutura do Projeto
 
 ```
-
-## 🗂️ Estrutura do repositório
-
-```text
-infra-database
- ┣ .github/
- ┣ k8s/
- ┃ ┣ 01-secret.yaml
- ┃ ┣ 01b-bootstrap-secret.yaml
- ┃ ┣ 02-configmap.yaml
- ┃ ┣ 03-service-headless.yaml
- ┃ ┣ 04-service.yaml
- ┃ ┣ 06-statefulset.yaml
- ┃ ┣ 07-bootstrap-sql-configmap.yaml
- ┃ ┗ 08-bootstrap-job.yaml
- ┣ .gitignore
- ┣ README.md
- ┣ backend.tf
- ┣ data.tf
- ┣ database.tf
- ┣ providers.tf
- ┗ storageclass.tf
+.
+├── /                    # Raiz - Provisiona o cluster RDS Aurora
+│   ├── backend.tf
+│   ├── data.tf
+│   ├── outputs.tf
+│   ├── providers.tf
+│   ├── rds.tf
+│   └── variables.tf
+│
+└── sql/                 # Databases e tabelas
+    ├── backend.tf
+    ├── data.tf
+    ├── database.tf      # Cria fiapdb-dev e fiapdb-prod
+    ├── outputs.tf
+    ├── providers.tf
+    ├── tables.tf        # Exemplos de tabelas
+    └── variables.tf
 ```
 
-## ⚡ Pré-requisitos
+## 🚀 Fluxo de Deploy
 
-- 🟢 Terraform instalado
-- 🟢 AWS CLI configurado com usuário da sua conta AWS
-- 🟢 Bucket S3 criado para armazenar o `tfstate`
-- 🟢 Atualize o nome do bucket S3 em [`backend.tf`](../infra/backend.tf)
+### 1. Criar o Cluster Aurora (Raiz)
 
-## Configuração do backend do Terraform
-
-Edite `backend.tf` para apontar ao bucket S3 correto onde será armazenado o `tfstate`. Exemplo de como passar o bucket na inicialização (opção alternativa):
-
-```sh
-terraform init \
-  -backend-config="bucket=seu-bucket-terraform" \
-  -backend-config="key=infra-database/terraform.tfstate" \
-  -backend-config="region=us-east-1"
-```
-
-Observação: o arquivo `backend.tf` no repositório contém a configuração padrão para o projeto — verifique e ajuste o `bucket`, `key` e `region` conforme sua conta.
-
-## 🚀 Como aplicar (passo a passo)
-
-1. Configure credenciais AWS (exemplo):
-
-```sh
-aws configure
-```
-
-1. Inicialize o Terraform (com backend configurado):
-
-```sh
+```bash
+# Na raiz do projeto
 terraform init
-```
-
-1. Review do plano:
-
-```sh
 terraform plan
-```
-
-1. Aplique:
-
-```sh
 terraform apply
 ```
 
-## 🛡️ Como acessar a Bastion EC2 via SSH
+Isso cria:
+- Aurora PostgreSQL Serverless v2
+- Security Group
+- Subnet Group
+- Credenciais gerenciadas pela AWS (Secrets Manager)
 
-1. Tenha a chave privada (bastion-key) gerada e salva em sua máquina. Criada no passo anterior de configuração do cluster([infra-kubernetes](https://github.com/fiap-soat-grupo36/infra-kubernetes))
-2. Obtenha o IP público da instância Bastion.
-    - No console AWS EC2, procure pela instância e copie o IP público.
+### 2. Criar Databases e Tabelas (pasta sql/)
 
-3. Acesse via terminal:
-
-```sh
-    ssh -i .ssh/bastion-key ec2-user@<ip-publico-da-bastion>
+```bash
+# Depois que o cluster estiver pronto
+cd sql
+terraform init
+terraform plan
+terraform apply
 ```
 
-4. Se for a primeira vez, aceite a chave do host digitando yes quando solicitado.
+Isso cria:
+- Database `fiapdb-dev`
+- Database `fiapdb-prod`
+- Schemas e tabelas de exemplo (users, products, orders)
 
-5. Para usar os comando `kubectl` execute como usuário root
+## 🔄 CI/CD
 
-```sh
-    sudo su
+### Workflows Separados
+
+**CI (Pull Requests e branches)**
+- Valida e planeja infraestrutura do cluster
+- Valida e planeja databases/tabelas
+- Executa em sequência: primeiro cluster, depois sql
+
+**CD (Branch main)**
+- Deploy do cluster Aurora
+- Deploy dos databases e tabelas
+- Execução automática em sequência
+
+### Pipeline
+
+```
+Push → CI Cluster → CI SQL → PR criado
+       ↓
+Merge main → CD Cluster → CD SQL → Deploy completo
 ```
 
-6. Pode ser necessário configurar o .kubeconfig ao acessar a bastion:
+## 💰 Gerenciamento de Custos
 
-```sh
-    aws eks update-kubeconfig --name eks-fiap-oficina-mecanica --region us-east-1 --alias bastion-cluster
+### Destruir Infraestrutura
+
+Para economizar custos quando não estiver usando:
+
+```bash
+# 1. Destruir databases e tabelas primeiro
+cd sql
+terraform destroy
+
+# 2. Depois destruir o cluster
+cd ..
+terraform destroy
 ```
 
-### Acessar o PostgreSql pela Bastion
+### Recriar Infraestrutura
 
-1. Abre a conexão com o pod:
+```bash
+# 1. Recriar o cluster
+terraform apply
 
-```sh
-kubectl -n oficina exec -it postgresql-0 -- /bin/bash
+# 2. Aguardar cluster ficar disponível (2-5 minutos)
+
+# 3. Recriar databases e tabelas
+cd sql
+terraform apply
 ```
 
-2. Faça login no database:
+## 🔐 Acesso ao Banco
 
-```sh
-psql -U postgres -d oficina -h localhost -p 5432
+### Recuperar Credenciais
+
+```bash
+# ARN do secret
+terraform output rds_master_user_secret_arn
+
+# Buscar senha no Secrets Manager
+aws secretsmanager get-secret-value \
+  --secret-id <ARN> \
+  --query SecretString \
+  --output text | jq -r .password
 ```
 
-Agora você já consegue executar comandos SQL.
+### Endpoints
+
+```bash
+# Writer endpoint
+terraform output rds_endpoint
+
+# Reader endpoint  
+terraform output rds_reader_endpoint
+```
+
+### Query Editor
+
+O cluster está configurado com `enable_http_endpoint = true`, permitindo uso do Query Editor da AWS Console.
+
+## 📊 Tabelas de Exemplo
+
+O projeto inclui exemplos de tabelas em ambos os ambientes (dev/prod):
+
+- **users**: id, name, email, created_at
+- **products**: id, name, description, price, stock, created_at, updated_at
+- **orders**: id, user_id, status, total, created_at
+
+Com foreign keys e constraints apropriados.
+
+## ⚙️ Configurações
+
+### Variáveis Principais (raiz)
+
+- `db_identifier`: Nome do cluster (default: fiap-rds)
+- `engine`: aurora-postgresql
+- `serverless_min_capacity`: 0.5 ACU
+- `serverless_max_capacity`: 1 ACU
+- `allowed_cidrs`: IPs permitidos para conexão
+
+### Variáveis SQL
+
+- `cluster_identifier`: Nome do cluster para buscar (default: fiap-rds)
+
+## 🔧 Troubleshooting
+
+### Erro ao criar databases
+
+Se o provider postgresql não conseguir conectar:
+1. Aguarde o cluster estar completamente disponível
+2. Verifique se o security group permite sua conexão
+3. Confirme que o secret foi criado corretamente
+
+### Estado inconsistente
+
+```bash
+# Refresh do state
+terraform refresh
+
+# Ou reimport de recursos
+terraform import aws_rds_cluster.this fiap-rds
+```
+
+## 📝 Notas
+
+- Este é um projeto acadêmico da FIAP
+- A separação cluster/databases facilita recriação frequente por custos
+- Credenciais são gerenciadas automaticamente pela AWS
+- Ambos ambientes (dev/prod) compartilham o mesmo cluster
