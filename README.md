@@ -2,6 +2,63 @@
 
 Este repositório contém a infraestrutura como código (Terraform) para provisionar e gerenciar o banco de dados Aurora PostgreSQL Serverless v2 na AWS.
 
+```mermaid
+flowchart TB
+    subgraph "Internet"
+        User["👤 Usuário/Aplicação"]
+    end
+    
+    subgraph "AWS Cloud - us-east-2"
+        subgraph "VPC - fiap-oficina-mecanica"
+            subgraph "Security Group"
+                SG["🔒 fiap-rds-sg<br/>Ingress: 0.0.0.0/0:5432<br/>Egress: 0.0.0.0/0"]
+            end
+            
+            subgraph "DB Subnet Group"
+                Subnet1["🌐 Subnet 1"]
+                Subnet2["🌐 Subnet 2"]
+            end
+            
+            subgraph "Aurora Serverless v2"
+                Cluster["☁️ Aurora PostgreSQL Cluster<br/>fiap-rds<br/>Engine: aurora-postgresql 14.6<br/>Min: 0.5 ACU / Max: 1 ACU"]
+                Instance["💾 Instance<br/>fiap-rds-oficina-1<br/>Class: db.serverless<br/>Publicly Accessible"]
+                
+                Cluster --> Instance
+            end
+            
+            SG -.protege.-> Cluster
+            Cluster -.usa.-> Subnet1
+            Cluster -.usa.-> Subnet2
+        end
+        
+        subgraph "Secrets Manager"
+            Secret["🔑 Master User Secret<br/>Gerenciado pela AWS<br/>User: app_admin"]
+        end
+        
+        Cluster -.credenciais.-> Secret
+    end
+    
+    subgraph "Databases"
+        DB1["📊 fiapdb-dev<br/>Schema: dev<br/>Tables: users, products, orders"]
+        DB2["📊 fiapdb-prod<br/>Schema: prod<br/>Tables: users, products, orders"]
+    end
+    
+    User -->|psql/DBeaver<br/>Port 5432| SG
+    SG --> Instance
+    Instance -.contém.-> DB1
+    Instance -.contém.-> DB2
+    
+    style User fill:#e1f5ff
+    style SG fill:#ff9999
+    style Cluster fill:#99ccff
+    style Instance fill:#99ccff
+    style Secret fill:#ffcc99
+    style DB1 fill:#99ff99
+    style DB2 fill:#99ff99
+    style Subnet1 fill:#f0f0f0
+    style Subnet2 fill:#f0f0f0
+```
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -72,39 +129,56 @@ Isso cria:
 
 ### Pipeline
 
-```
-Push → CI Cluster → CI SQL → PR criado
-       ↓
-Merge main → CD Cluster → CD SQL → Deploy completo
-```
-
-## 💰 Gerenciamento de Custos
-
-### Destruir Infraestrutura
-
-Para economizar custos quando não estiver usando:
-
-```bash
-# 1. Destruir databases e tabelas primeiro
-cd sql
-terraform destroy
-
-# 2. Depois destruir o cluster
-cd ..
-terraform destroy
-```
-
-### Recriar Infraestrutura
-
-```bash
-# 1. Recriar o cluster
-terraform apply
-
-# 2. Aguardar cluster ficar disponível (2-5 minutos)
-
-# 3. Recriar databases e tabelas
-cd sql
-terraform apply
+```mermaid
+graph LR
+    subgraph " "
+        Feature["🌿 feature/hotfix"]
+    end
+    
+    subgraph " "
+        CI["⚙️ CI<br/>Terraform Plan"]
+    end
+    
+    subgraph " "
+        Develop["🌿 develop"]
+    end
+    
+    subgraph " "
+        CD_DEV["🚀 Deploy DEV<br/>Terraform Apply"]
+    end
+    
+    subgraph "🏗️ DEV"
+        DEV_ENV["fiapdb-dev"]
+    end
+    
+    subgraph " "
+        Main["🌿 main"]
+    end
+    
+    subgraph " "
+        CD_PROD["🚀 Deploy PROD<br/>Terraform Apply"]
+    end
+    
+    subgraph "🏭 PROD"
+        PROD_ENV["fiapdb-prod"]
+    end
+    
+    Feature -->|push| CI
+    CI -->|✅| Develop
+    Develop -->|push| CD_DEV
+    CD_DEV -->|provisiona| DEV_ENV
+    Develop -.PR.-> Main
+    Main -->|push| CD_PROD
+    CD_PROD -->|provisiona| PROD_ENV
+    
+    style Feature fill:#ffd54f,stroke:#f57c00,stroke-width:2px
+    style CI fill:#9fa8da,stroke:#3949ab,stroke-width:2px
+    style Develop fill:#81c784,stroke:#388e3c,stroke-width:2px
+    style CD_DEV fill:#4db6ac,stroke:#00796b,stroke-width:2px
+    style DEV_ENV fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style Main fill:#64b5f6,stroke:#1976d2,stroke-width:2px
+    style CD_PROD fill:#4dd0e1,stroke:#0097a7,stroke-width:2px
+    style PROD_ENV fill:#ffccbc,stroke:#d84315,stroke-width:2px
 ```
 
 ## 🔐 Acesso ao Banco
@@ -131,57 +205,3 @@ terraform output rds_endpoint
 # Reader endpoint  
 terraform output rds_reader_endpoint
 ```
-
-### Query Editor
-
-O cluster está configurado com `enable_http_endpoint = true`, permitindo uso do Query Editor da AWS Console.
-
-## 📊 Tabelas de Exemplo
-
-O projeto inclui exemplos de tabelas em ambos os ambientes (dev/prod):
-
-- **users**: id, name, email, created_at
-- **products**: id, name, description, price, stock, created_at, updated_at
-- **orders**: id, user_id, status, total, created_at
-
-Com foreign keys e constraints apropriados.
-
-## ⚙️ Configurações
-
-### Variáveis Principais (raiz)
-
-- `db_identifier`: Nome do cluster (default: fiap-rds)
-- `engine`: aurora-postgresql
-- `serverless_min_capacity`: 0.5 ACU
-- `serverless_max_capacity`: 1 ACU
-- `allowed_cidrs`: IPs permitidos para conexão
-
-### Variáveis SQL
-
-- `cluster_identifier`: Nome do cluster para buscar (default: fiap-rds)
-
-## 🔧 Troubleshooting
-
-### Erro ao criar databases
-
-Se o provider postgresql não conseguir conectar:
-1. Aguarde o cluster estar completamente disponível
-2. Verifique se o security group permite sua conexão
-3. Confirme que o secret foi criado corretamente
-
-### Estado inconsistente
-
-```bash
-# Refresh do state
-terraform refresh
-
-# Ou reimport de recursos
-terraform import aws_rds_cluster.this fiap-rds
-```
-
-## 📝 Notas
-
-- Este é um projeto acadêmico da FIAP
-- A separação cluster/databases facilita recriação frequente por custos
-- Credenciais são gerenciadas automaticamente pela AWS
-- Ambos ambientes (dev/prod) compartilham o mesmo cluster
