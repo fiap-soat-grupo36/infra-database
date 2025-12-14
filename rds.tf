@@ -13,11 +13,11 @@ resource "aws_security_group" "rds" {
   vpc_id      = data.aws_vpc.main.id
 
   ingress {
-    description = "DB ingress"
+    description = "DB ingress from anywhere"
     from_port   = var.db_port
     to_port     = var.db_port
     protocol    = "tcp"
-    cidr_blocks = var.allowed_cidrs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -43,8 +43,11 @@ resource "aws_rds_cluster" "this" {
   db_subnet_group_name          = aws_db_subnet_group.rds.name
   vpc_security_group_ids        = [aws_security_group.rds.id]
   skip_final_snapshot           = true
-  database_name                 = var.db_name
-
+  
+  # Janela de manutenção configurada para minimizar impacto em testes
+  preferred_maintenance_window = "sun:03:00-sun:04:00"
+  apply_immediately            = true
+  
   serverlessv2_scaling_configuration {
     min_capacity = var.serverless_min_capacity
     max_capacity = var.serverless_max_capacity
@@ -53,4 +56,15 @@ resource "aws_rds_cluster" "this" {
   tags = merge({
     Name = var.db_identifier
   }, var.tags)
+}
+
+resource "aws_rds_cluster_instance" "instance" {
+  identifier                 = "${var.db_identifier}-oficina-1"
+  cluster_identifier         = aws_rds_cluster.this.id
+  instance_class             = "db.serverless"
+  engine                     = aws_rds_cluster.this.engine
+  engine_version             = aws_rds_cluster.this.engine_version
+  publicly_accessible        = true
+  auto_minor_version_upgrade = false
+  apply_immediately          = true
 }
