@@ -14,6 +14,7 @@ resource "null_resource" "create_fake_data" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -e
       
@@ -32,10 +33,10 @@ resource "null_resource" "create_fake_data" {
             echo "ERRO: Homebrew não encontrado. Instale com: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
             exit 1
           fi
-        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        elif [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
           # Linux (GitHub Actions usa Ubuntu)
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
         else
           echo "ERRO: Sistema operacional não suportado: $OSTYPE"
           exit 1
