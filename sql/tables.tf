@@ -13,6 +13,7 @@ resource "null_resource" "create_tables" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -e
       

@@ -14,6 +14,7 @@ resource "null_resource" "create_fake_data" {
   }
 
   provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
     command = <<-EOT
       set -e
       
