@@ -4,8 +4,10 @@
 
 - [Diagrama Completo](#diagrama-completo)
 - [Diagrama por Microserviço](#diagrama-por-microserviço)
-- [Diagrama de Relacionamentos](#diagrama-de-relacionamentos)
+- [Diagrama Simplificado](#diagrama-simplificado)
 - [Legenda e Convenções](#legenda-e-convenções)
+
+> **Nota:** Os nomes das tabelas nos diagramas foram simplificados (sem underscores) para compatibilidade com o renderizador Mermaid do GitHub. Os nomes reais no banco de dados mantêm os underscores (ex: `ordem_servico`, `produto_catalogo`).
 
 ---
 
@@ -61,7 +63,7 @@ erDiagram
         BOOLEAN ativo
     }
 
-    PRODUTO_CATALOGO {
+    PRODUTOCATALOGO {
         BIGINT id PK
         VARCHAR nome
         TEXT descricao
@@ -70,19 +72,19 @@ erDiagram
         BOOLEAN ativo
     }
 
-    PRODUTO_ESTOQUE {
+    PRODUTOESTOQUE {
         BIGINT id PK
-        BIGINT produto_catalogo_id FK_UK
-        INT quantidade_disponivel
-        INT quantidade_reservada
+        BIGINT produtocatalogo_id FK_UK
+        INT qtd_disponivel
+        INT qtd_reservada
         INT estoque_minimo
         NUMERIC preco_custo_medio
         TIMESTAMP ultima_atualizacao
     }
 
-    MOVIMENTACAO_ESTOQUE {
+    MOVIMENTACAOESTOQUE {
         BIGINT id PK
-        BIGINT produto_catalogo_id FK
+        BIGINT produtocatalogo_id FK
         VARCHAR tipo
         INT quantidade
         NUMERIC preco_unitario
@@ -90,23 +92,23 @@ erDiagram
         TEXT observacao
     }
 
-    ORDEM_SERVICO {
+    ORDEMSERVICO {
         BIGINT id PK
         BIGINT cliente_id FK
         BIGINT veiculo_id FK
         BIGINT mecanico_id FK
         VARCHAR status
         TIMESTAMP criada_em
-        TIMESTAMP data_inicio_execucao
-        TIMESTAMP data_termino_execucao
+        TIMESTAMP data_inicio
+        TIMESTAMP data_termino
         TIMESTAMP data_entrega
         TEXT observacoes
     }
 
-    ITEM_ORDEM_SERVICO {
+    ITEMORDEMSERVICO {
         BIGINT id PK
-        BIGINT ordem_servico_id FK
-        BIGINT produto_catalogo_id FK
+        BIGINT ordemservico_id FK
+        BIGINT produtocatalogo_id FK
         BIGINT servico_id FK
         NUMERIC valor_unitario
         INT quantidade
@@ -115,7 +117,7 @@ erDiagram
 
     ORCAMENTO {
         BIGINT id PK
-        BIGINT ordem_servico_id FK_UK
+        BIGINT ordemservico_id FK_UK
         NUMERIC valor_total
         VARCHAR status
         TIMESTAMP data_criacao
@@ -123,7 +125,7 @@ erDiagram
         TIMESTAMP data_reprovacao
     }
 
-    ITEM_ORCAMENTO {
+    ITEMORCAMENTO {
         BIGINT id PK
         BIGINT orcamento_id FK
         VARCHAR descricao
@@ -132,18 +134,26 @@ erDiagram
         NUMERIC valor_total
     }
 
-    CLIENTE ||--o{ VEICULO : "possui"
-    CLIENTE ||--o{ ORDEM_SERVICO : "abre"
-    VEICULO ||--o{ ORDEM_SERVICO : "usado_em"
-    USUARIO ||--o{ ORDEM_SERVICO : "atribuido_como_mecanico"
-    ORDEM_SERVICO ||--o{ ITEM_ORDEM_SERVICO : "contem"
-    ORDEM_SERVICO ||--|| ORCAMENTO : "gera"
-    ORCAMENTO ||--o{ ITEM_ORCAMENTO : "contem"
-    SERVICO ||--o{ ITEM_ORDEM_SERVICO : "referenciado_em"
-    PRODUTO_CATALOGO ||--|| PRODUTO_ESTOQUE : "tem_estoque"
-    PRODUTO_CATALOGO ||--o{ ITEM_ORDEM_SERVICO : "referenciado_em"
-    PRODUTO_CATALOGO ||--o{ MOVIMENTACAO_ESTOQUE : "registra"
+    CLIENTE ||--o{ VEICULO : possui
+    CLIENTE ||--o{ ORDEMSERVICO : abre
+    VEICULO ||--o{ ORDEMSERVICO : usado_em
+    USUARIO ||--o{ ORDEMSERVICO : atribuido
+    ORDEMSERVICO ||--o{ ITEMORDEMSERVICO : contem
+    ORDEMSERVICO ||--|| ORCAMENTO : gera
+    ORCAMENTO ||--o{ ITEMORCAMENTO : contem
+    SERVICO ||--o{ ITEMORDEMSERVICO : referenciado
+    PRODUTOCATALOGO ||--|| PRODUTOESTOQUE : tem_estoque
+    PRODUTOCATALOGO ||--o{ ITEMORDEMSERVICO : referenciado
+    PRODUTOCATALOGO ||--o{ MOVIMENTACAOESTOQUE : registra
 ```
+
+**Mapeamento de Nomes:**
+- Diagrama: `PRODUTOCATALOGO` → Banco: `produtos_catalogo`
+- Diagrama: `PRODUTOESTOQUE` → Banco: `produtos_estoque`
+- Diagrama: `MOVIMENTACAOESTOQUE` → Banco: `movimentacoes_estoque`
+- Diagrama: `ORDEMSERVICO` → Banco: `ordens_servico`
+- Diagrama: `ITEMORDEMSERVICO` → Banco: `itens_ordem_servico`
+- Diagrama: `ITEMORCAMENTO` → Banco: `itens_orcamento`
 
 ---
 
@@ -154,16 +164,25 @@ erDiagram
 ```mermaid
 erDiagram
     USUARIO {
-        BIGINT id PK "AUTO_INCREMENT"
-        VARCHAR username UK "UNIQUE NOT NULL"
-        VARCHAR nome "NOT NULL"
-        VARCHAR password_hash "BCrypt"
-        VARCHAR role "ENUM: ADMIN, CLIENTE, MECANICO, ATENDENTE, ESTOQUISTA"
-        BOOLEAN ativo "DEFAULT true"
+        BIGINT id PK
+        VARCHAR username UK
+        VARCHAR nome
+        VARCHAR password_hash
+        VARCHAR role
+        BOOLEAN ativo
     }
 ```
 
+**Tabela real no banco:** `usuarios`
+
 **Responsabilidade:** Autenticação e autorização de usuários do sistema.
+
+**Roles disponíveis:**
+- ADMIN
+- CLIENTE
+- MECANICO
+- ATENDENTE
+- ESTOQUISTA
 
 ---
 
@@ -173,39 +192,42 @@ erDiagram
 erDiagram
     CLIENTE {
         BIGINT id PK
-        VARCHAR nome "NOT NULL"
-        VARCHAR cpf UK "XXX.XXX.XXX-XX"
-        VARCHAR cnpj UK "XX.XXX.XXX/XXXX-XX"
-        VARCHAR email UK "NOT NULL"
-        VARCHAR telefone "NOT NULL"
-        JSONB endereco "Estruturado"
-        TIMESTAMP data_cadastro "AUTO"
-        DATE data_nascimento "Opcional"
-        TEXT observacao "Opcional"
-        BOOLEAN ativo "DEFAULT true"
+        VARCHAR nome
+        VARCHAR cpf UK
+        VARCHAR cnpj UK
+        VARCHAR email UK
+        VARCHAR telefone
+        JSONB endereco
+        TIMESTAMP data_cadastro
+        DATE data_nascimento
+        TEXT observacao
+        BOOLEAN ativo
     }
 
     VEICULO {
         BIGINT id PK
-        VARCHAR placa UK "Mercosul ou Antigo"
-        VARCHAR marca "Opcional"
-        VARCHAR modelo "NOT NULL"
-        INT ano "1900 até atual+1"
-        VARCHAR cor "Opcional"
-        TEXT observacoes "Opcional"
-        BIGINT cliente_id FK "NOT NULL"
-        TIMESTAMP data_cadastro "AUTO"
-        BOOLEAN ativo "DEFAULT true"
+        VARCHAR placa UK
+        VARCHAR marca
+        VARCHAR modelo
+        INT ano
+        VARCHAR cor
+        TEXT observacoes
+        BIGINT cliente_id FK
+        TIMESTAMP data_cadastro
+        BOOLEAN ativo
     }
 
-    CLIENTE ||--o{ VEICULO : "possui"
+    CLIENTE ||--o{ VEICULO : possui
 ```
+
+**Tabelas reais no banco:** `clientes`, `veiculos`
 
 **Responsabilidade:** Gestão de clientes (PF/PJ) e seus veículos.
 
 **Constraints importantes:**
 - Cliente deve ter CPF **OU** CNPJ (não ambos)
 - Placa deve ser formato Mercosul (ABC1D23) ou antigo (ABC1234)
+- Ano do veículo entre 1900 e ano atual + 1
 
 ---
 
@@ -215,23 +237,25 @@ erDiagram
 erDiagram
     SERVICO {
         BIGINT id PK
-        VARCHAR nome "NOT NULL"
-        TEXT descricao "Opcional"
-        VARCHAR categoria "ENUM"
-        NUMERIC preco_base "NOT NULL, > 0"
-        INT tempo_estimado_minutos "NOT NULL, > 0"
-        BOOLEAN ativo "DEFAULT true"
+        VARCHAR nome
+        TEXT descricao
+        VARCHAR categoria
+        NUMERIC preco_base
+        INT tempo_estimado
+        BOOLEAN ativo
     }
 
-    PRODUTO_CATALOGO {
+    PRODUTOCATALOGO {
         BIGINT id PK
-        VARCHAR nome "NOT NULL"
-        TEXT descricao "Opcional"
-        VARCHAR categoria "ENUM: PECA, INSUMO"
-        NUMERIC preco "NOT NULL, > 0"
-        BOOLEAN ativo "DEFAULT true"
+        VARCHAR nome
+        TEXT descricao
+        VARCHAR categoria
+        NUMERIC preco
+        BOOLEAN ativo
     }
 ```
+
+**Tabelas reais no banco:** `servicos`, `produtos_catalogo`
 
 **Responsabilidade:** Catálogo de serviços e produtos oferecidos pela oficina.
 
@@ -242,45 +266,55 @@ erDiagram
 - ALINHAMENTO
 - SUSPENSAO
 
+**Categorias de Produto:**
+- PECA
+- INSUMO
+
 ---
 
 ### Inventory Service
 
 ```mermaid
 erDiagram
-    PRODUTO_CATALOGO {
+    PRODUTOCATALOGO {
         BIGINT id PK
         VARCHAR nome
         NUMERIC preco
     }
 
-    PRODUTO_ESTOQUE {
+    PRODUTOESTOQUE {
         BIGINT id PK
-        BIGINT produto_catalogo_id FK_UK "UNIQUE - relação 1:1"
-        INT quantidade_disponivel "DEFAULT 0"
-        INT quantidade_reservada "DEFAULT 0"
-        INT estoque_minimo "DEFAULT 5"
-        NUMERIC preco_custo_medio "Opcional"
-        TIMESTAMP ultima_atualizacao "AUTO"
+        BIGINT produtocatalogo_id FK_UK
+        INT qtd_disponivel
+        INT qtd_reservada
+        INT estoque_minimo
+        NUMERIC preco_custo_medio
+        TIMESTAMP ultima_atualizacao
     }
 
-    MOVIMENTACAO_ESTOQUE {
+    MOVIMENTACAOESTOQUE {
         BIGINT id PK
-        BIGINT produto_catalogo_id FK
-        VARCHAR tipo "ENUM: ENTRADA, SAIDA"
-        INT quantidade "NOT NULL, > 0"
-        NUMERIC preco_unitario "Opcional"
-        TIMESTAMP data_movimentacao "AUTO"
-        TEXT observacao "Opcional"
+        BIGINT produtocatalogo_id FK
+        VARCHAR tipo
+        INT quantidade
+        NUMERIC preco_unitario
+        TIMESTAMP data_movimentacao
+        TEXT observacao
     }
 
-    PRODUTO_CATALOGO ||--|| PRODUTO_ESTOQUE : "tem"
-    PRODUTO_CATALOGO ||--o{ MOVIMENTACAO_ESTOQUE : "registra"
+    PRODUTOCATALOGO ||--|| PRODUTOESTOQUE : tem
+    PRODUTOCATALOGO ||--o{ MOVIMENTACAOESTOQUE : registra
 ```
+
+**Tabelas reais no banco:** `produtos_catalogo`, `produtos_estoque`, `movimentacoes_estoque`
 
 **Responsabilidade:** Controle de estoque e histórico de movimentações.
 
 **Relacionamento 1:1:** Cada produto do catálogo tem **exatamente um** registro de estoque.
+
+**Tipos de Movimentação:**
+- ENTRADA
+- SAIDA
 
 ---
 
@@ -303,27 +337,27 @@ erDiagram
         VARCHAR nome
     }
 
-    ORDEM_SERVICO {
+    ORDEMSERVICO {
         BIGINT id PK
-        BIGINT cliente_id FK "NOT NULL"
-        BIGINT veiculo_id FK "NOT NULL"
-        BIGINT mecanico_id FK "Opcional"
-        VARCHAR status "ENUM"
-        TIMESTAMP criada_em "AUTO"
-        TIMESTAMP data_inicio_execucao "Opcional"
-        TIMESTAMP data_termino_execucao "Opcional"
-        TIMESTAMP data_entrega "Opcional"
-        TEXT observacoes "Opcional"
+        BIGINT cliente_id FK
+        BIGINT veiculo_id FK
+        BIGINT mecanico_id FK
+        VARCHAR status
+        TIMESTAMP criada_em
+        TIMESTAMP data_inicio
+        TIMESTAMP data_termino
+        TIMESTAMP data_entrega
+        TEXT observacoes
     }
 
-    ITEM_ORDEM_SERVICO {
+    ITEMORDEMSERVICO {
         BIGINT id PK
-        BIGINT ordem_servico_id FK "NOT NULL"
-        BIGINT produto_catalogo_id FK "Opcional"
-        BIGINT servico_id FK "Opcional"
-        NUMERIC valor_unitario "NOT NULL"
-        INT quantidade "DEFAULT 1"
-        TEXT observacao "Opcional"
+        BIGINT ordemservico_id FK
+        BIGINT produtocatalogo_id FK
+        BIGINT servico_id FK
+        NUMERIC valor_unitario
+        INT quantidade
+        TEXT observacao
     }
 
     SERVICO {
@@ -331,18 +365,20 @@ erDiagram
         VARCHAR nome
     }
 
-    PRODUTO_CATALOGO {
+    PRODUTOCATALOGO {
         BIGINT id PK
         VARCHAR nome
     }
 
-    CLIENTE ||--o{ ORDEM_SERVICO : "abre"
-    VEICULO ||--o{ ORDEM_SERVICO : "usado_em"
-    USUARIO ||--o{ ORDEM_SERVICO : "mecanico_atribuido"
-    ORDEM_SERVICO ||--o{ ITEM_ORDEM_SERVICO : "contem"
-    SERVICO ||--o{ ITEM_ORDEM_SERVICO : "referenciado"
-    PRODUTO_CATALOGO ||--o{ ITEM_ORDEM_SERVICO : "referenciado"
+    CLIENTE ||--o{ ORDEMSERVICO : abre
+    VEICULO ||--o{ ORDEMSERVICO : usado_em
+    USUARIO ||--o{ ORDEMSERVICO : atribuido
+    ORDEMSERVICO ||--o{ ITEMORDEMSERVICO : contem
+    SERVICO ||--o{ ITEMORDEMSERVICO : referenciado
+    PRODUTOCATALOGO ||--o{ ITEMORDEMSERVICO : referenciado
 ```
+
+**Tabelas reais no banco:** `ordens_servico`, `itens_ordem_servico`
 
 **Responsabilidade:** Gestão de ordens de serviço e seus itens.
 
@@ -364,102 +400,46 @@ erDiagram
 
 ```mermaid
 erDiagram
-    ORDEM_SERVICO {
+    ORDEMSERVICO {
         BIGINT id PK
         VARCHAR status
     }
 
     ORCAMENTO {
         BIGINT id PK
-        BIGINT ordem_servico_id FK_UK "UNIQUE - relação 1:1"
-        NUMERIC valor_total "NOT NULL, > 0"
-        VARCHAR status "ENUM: CRIADO, APROVADO, REPROVADO"
-        TIMESTAMP data_criacao "AUTO"
-        TIMESTAMP data_aprovacao "Opcional"
-        TIMESTAMP data_reprovacao "Opcional"
+        BIGINT ordemservico_id FK_UK
+        NUMERIC valor_total
+        VARCHAR status
+        TIMESTAMP data_criacao
+        TIMESTAMP data_aprovacao
+        TIMESTAMP data_reprovacao
     }
 
-    ITEM_ORCAMENTO {
+    ITEMORCAMENTO {
         BIGINT id PK
-        BIGINT orcamento_id FK "NOT NULL"
-        VARCHAR descricao "NOT NULL"
-        INT quantidade "NOT NULL, > 0"
-        NUMERIC valor_unitario "NOT NULL, > 0"
-        NUMERIC valor_total "COMPUTED: quantidade * valor_unitario"
+        BIGINT orcamento_id FK
+        VARCHAR descricao
+        INT quantidade
+        NUMERIC valor_unitario
+        NUMERIC valor_total
     }
 
-    ORDEM_SERVICO ||--|| ORCAMENTO : "gera"
-    ORCAMENTO ||--o{ ITEM_ORCAMENTO : "contem"
+    ORDEMSERVICO ||--|| ORCAMENTO : gera
+    ORCAMENTO ||--o{ ITEMORCAMENTO : contem
 ```
+
+**Tabelas reais no banco:** `orcamentos`, `itens_orcamento`
 
 **Responsabilidade:** Gestão de orçamentos e aprovações.
 
 **Relacionamento 1:1:** Cada OS tem **exatamente um** orçamento.
 
+**Status do Orçamento:**
+- CRIADO
+- APROVADO
+- REPROVADO
+
 **Computed Column:** `valor_total` é calculado automaticamente (quantidade × valor_unitário).
-
----
-
-## 🔗 Diagrama de Relacionamentos
-
-Foco nos **Foreign Keys** e suas ações:
-
-```mermaid
-graph TB
-    subgraph "Entidades Principais"
-        USUARIO[USUARIO<br/>id]
-        CLIENTE[CLIENTE<br/>id]
-        VEICULO[VEICULO<br/>id, cliente_id]
-        SERVICO[SERVICO<br/>id]
-        PRODUTO[PRODUTO_CATALOGO<br/>id]
-        ESTOQUE[PRODUTO_ESTOQUE<br/>id, produto_catalogo_id]
-        MOVIMENTACAO[MOVIMENTACAO_ESTOQUE<br/>id, produto_catalogo_id]
-        OS[ORDEM_SERVICO<br/>id, cliente_id, veiculo_id, mecanico_id]
-        ITEM_OS[ITEM_ORDEM_SERVICO<br/>id, ordem_servico_id, produto_id, servico_id]
-        ORCAMENTO[ORCAMENTO<br/>id, ordem_servico_id]
-        ITEM_ORC[ITEM_ORCAMENTO<br/>id, orcamento_id]
-    end
-
-    CLIENTE -->|"cliente_id<br/>ON DELETE RESTRICT"| VEICULO
-    CLIENTE -->|"cliente_id<br/>ON DELETE RESTRICT"| OS
-    VEICULO -->|"veiculo_id<br/>ON DELETE RESTRICT"| OS
-    USUARIO -->|"mecanico_id<br/>ON DELETE SET NULL"| OS
-    OS -->|"ordem_servico_id<br/>ON DELETE CASCADE"| ITEM_OS
-    OS -->|"ordem_servico_id<br/>ON DELETE CASCADE"| ORCAMENTO
-    ORCAMENTO -->|"orcamento_id<br/>ON DELETE CASCADE"| ITEM_ORC
-    SERVICO -.->|"servico_id<br/>ON DELETE RESTRICT"| ITEM_OS
-    PRODUTO -->|"produto_catalogo_id<br/>ON DELETE CASCADE"| ESTOQUE
-    PRODUTO -.->|"produto_catalogo_id<br/>ON DELETE RESTRICT"| ITEM_OS
-    PRODUTO -->|"produto_catalogo_id<br/>ON DELETE RESTRICT"| MOVIMENTACAO
-
-    style CLIENTE fill:#e3f2fd
-    style VEICULO fill:#e3f2fd
-    style USUARIO fill:#fff3e0
-    style SERVICO fill:#f3e5f5
-    style PRODUTO fill:#f3e5f5
-    style ESTOQUE fill:#f3e5f5
-    style MOVIMENTACAO fill:#f3e5f5
-    style OS fill:#e8f5e9
-    style ITEM_OS fill:#e8f5e9
-    style ORCAMENTO fill:#fff9c4
-    style ITEM_ORC fill:#fff9c4
-```
-
-### Tabela de Foreign Keys
-
-| Tabela Origem | Coluna FK | Tabela Destino | ON DELETE | Justificativa |
-|---------------|-----------|----------------|-----------|---------------|
-| **veiculos** | cliente_id | clientes | RESTRICT | Não pode deletar cliente com veículos |
-| **ordens_servico** | cliente_id | clientes | RESTRICT | Não pode deletar cliente com OS |
-| **ordens_servico** | veiculo_id | veiculos | RESTRICT | Não pode deletar veículo com OS |
-| **ordens_servico** | mecanico_id | usuarios | SET NULL | Se mecânico sai, OS continua |
-| **itens_ordem_servico** | ordem_servico_id | ordens_servico | CASCADE | Se OS deletada, itens também |
-| **itens_ordem_servico** | produto_catalogo_id | produtos_catalogo | RESTRICT | Não pode deletar produto em uso |
-| **itens_ordem_servico** | servico_id | servicos | RESTRICT | Não pode deletar serviço em uso |
-| **produtos_estoque** | produto_catalogo_id | produtos_catalogo | CASCADE | Estoque segue o produto |
-| **movimentacoes_estoque** | produto_catalogo_id | produtos_catalogo | RESTRICT | Histórico não pode ser perdido |
-| **orcamentos** | ordem_servico_id | ordens_servico | CASCADE | Orçamento é parte da OS |
-| **itens_orcamento** | orcamento_id | orcamentos | CASCADE | Itens seguem o orçamento |
 
 ---
 
@@ -469,30 +449,30 @@ Visão geral sem detalhes de atributos:
 
 ```mermaid
 graph TB
-    subgraph "👤 Autenticação"
+    subgraph Auth[👤 Autenticação]
         USUARIO[USUARIO]
     end
 
-    subgraph "👥 Gestão de Clientes"
+    subgraph Customer[👥 Gestão de Clientes]
         CLIENTE[CLIENTE]
         VEICULO[VEICULO]
     end
 
-    subgraph "📦 Catálogo e Estoque"
+    subgraph Catalog[📦 Catálogo e Estoque]
         SERVICO[SERVICO]
-        PRODUTO[PRODUTO_CATALOGO]
-        ESTOQUE[PRODUTO_ESTOQUE]
-        MOVIMENTACAO[MOVIMENTACAO_ESTOQUE]
+        PRODUTO[PRODUTOCATALOGO]
+        ESTOQUE[PRODUTOESTOQUE]
+        MOVIMENTACAO[MOVIMENTACAOESTOQUE]
     end
 
-    subgraph "🔧 Ordens de Serviço"
-        OS[ORDEM_SERVICO]
-        ITEM_OS[ITEM_ORDEM_SERVICO]
+    subgraph WorkOrder[🔧 Ordens de Serviço]
+        OS[ORDEMSERVICO]
+        ITEM_OS[ITEMORDEMSERVICO]
     end
 
-    subgraph "💰 Orçamentos"
+    subgraph Budget[💰 Orçamentos]
         ORCAMENTO[ORCAMENTO]
-        ITEM_ORC[ITEM_ORCAMENTO]
+        ITEM_ORC[ITEMORCAMENTO]
     end
 
     CLIENTE -->|1:N| VEICULO
@@ -540,7 +520,6 @@ graph TB
 | `\|\|--o{` | Um para muitos (obrigatório no lado 1) | Cliente → Veículos |
 | `\|\|--\|\|` | Um para um (obrigatório em ambos) | Produto → Estoque |
 | `o\|--o{` | Zero ou um para muitos | Mecânico → OS |
-| `}o--o{` | Muitos para muitos | (não usado neste modelo) |
 
 ### ON DELETE Actions
 
@@ -549,7 +528,6 @@ graph TB
 | **RESTRICT** | Impede deleção se existirem registros relacionados | Entidades críticas (clientes, produtos) |
 | **CASCADE** | Deleta automaticamente registros relacionados | Entidades dependentes (itens, detalhes) |
 | **SET NULL** | Define FK como NULL | Relacionamentos opcionais (mecânico) |
-| **NO ACTION** | Similar a RESTRICT (não usado neste projeto) | - |
 
 ### Cores por Contexto
 
@@ -560,6 +538,24 @@ graph TB
 | 🟣 **Roxo** | Catálogo e Estoque | catalog-service, inventory-service |
 | 🟢 **Verde** | Ordens de Serviço | work-order-service |
 | 🟡 **Amarelo** | Orçamentos | budget-service |
+
+---
+
+## 📊 Tabela de Foreign Keys
+
+| Tabela Origem | Coluna FK | Tabela Destino | ON DELETE | Justificativa |
+|---------------|-----------|----------------|-----------|---------------|
+| **veiculos** | cliente_id | clientes | RESTRICT | Não pode deletar cliente com veículos |
+| **ordens_servico** | cliente_id | clientes | RESTRICT | Não pode deletar cliente com OS |
+| **ordens_servico** | veiculo_id | veiculos | RESTRICT | Não pode deletar veículo com OS |
+| **ordens_servico** | mecanico_id | usuarios | SET NULL | Se mecânico sai, OS continua |
+| **itens_ordem_servico** | ordem_servico_id | ordens_servico | CASCADE | Se OS deletada, itens também |
+| **itens_ordem_servico** | produto_catalogo_id | produtos_catalogo | RESTRICT | Não pode deletar produto em uso |
+| **itens_ordem_servico** | servico_id | servicos | RESTRICT | Não pode deletar serviço em uso |
+| **produtos_estoque** | produto_catalogo_id | produtos_catalogo | CASCADE | Estoque segue o produto |
+| **movimentacoes_estoque** | produto_catalogo_id | produtos_catalogo | RESTRICT | Histórico não pode ser perdido |
+| **orcamentos** | ordem_servico_id | ordens_servico | CASCADE | Orçamento é parte da OS |
+| **itens_orcamento** | orcamento_id | orcamentos | CASCADE | Itens seguem o orçamento |
 
 ---
 
@@ -631,6 +627,7 @@ GROUP BY os.id;
 - [Mermaid ER Diagram Syntax](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
 - [PostgreSQL Foreign Keys](https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK)
 - [Database Normalization](https://en.wikipedia.org/wiki/Database_normalization)
+- [GitHub Mermaid Support](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
 
 ---
 
@@ -639,6 +636,7 @@ GROUP BY os.id;
 | Versão | Data | Descrição |
 |--------|------|-----------|
 | 1.0.0 | 2024-12-30 | Versão inicial com todos os diagramas |
+| 1.0.1 | 2024-12-30 | Correção de nomes para compatibilidade GitHub |
 
 ---
 
