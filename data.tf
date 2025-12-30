@@ -10,4 +10,9 @@ data "aws_subnets" "from_vpc" {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id]
   }
+  
+  filter {
+    name   = "tag:Name"
+    values = ["*public*"]
+  }
 }

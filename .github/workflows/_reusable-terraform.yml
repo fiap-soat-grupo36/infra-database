@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         description: 'Arquivo de variáveis .tfvars (opcional)'
+      workspace:
+        description: 'Terraform workspace name'
+        required: true
+        type: string
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -51,6 +55,17 @@ jobs:
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
+
+      - name: Select Terraform Workspace
+        run: |
+          echo "🔍 Listing existing workspaces..."
+          terraform workspace list
+          
+          echo "📋 Selecting workspace: ${{ inputs.workspace }}"
+          terraform workspace select ${{ inputs.workspace }} || terraform workspace new ${{ inputs.workspace }}
+          
+          echo "✅ Current workspace:"
+          terraform workspace show
 
       - name: Terraform Plan
         id: plan

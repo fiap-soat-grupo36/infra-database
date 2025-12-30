@@ -1,11 +1,13 @@
-resource "null_resource" "create_database" {
+resource "null_resource" "create_fake_data" {
   depends_on = [
     data.aws_rds_cluster.cluster,
-    data.aws_secretsmanager_secret_version.db_password
+    data.aws_secretsmanager_secret_version.db_password,
+    null_resource.create_database,
+    null_resource.create_tables
   ]
   
   triggers = {
-    schema_version = filemd5("${path.module}/scripts/schema.sql")
+    schema_version = filemd5("${path.module}/scripts/fake_data.sql")
     database_name  = var.database_name
     schema_name    = var.environment
     cluster_id     = data.aws_rds_cluster.cluster.id
@@ -115,7 +117,7 @@ resource "null_resource" "create_database" {
            -d postgres \
            -v database_name=${var.database_name} \
            -v schema_name=${var.environment} \
-           -f ${path.module}/scripts/schema.sql
+           -f ${path.module}/scripts/fake_data.sql
       
       echo ""
       echo "========================================="
