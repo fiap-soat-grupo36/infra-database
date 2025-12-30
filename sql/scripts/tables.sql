@@ -6,7 +6,8 @@
 -- Ambiente: Todos (dev, homolog, prod)
 -- Descrição: Cria todas as tabelas, constraints, índices e extensions
 -- ============================================================================
-
+\c :database_name
+SET search_path TO :schema_name;
 -- ============================================================================
 -- EXTENSIONS
 -- ============================================================================
