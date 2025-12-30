@@ -18,53 +18,53 @@ Este diagrama mostra **todas as 11 tabelas** com seus atributos principais e rel
 ```mermaid
 erDiagram
     USUARIO {
-        bigint id PK
-        varchar username UK
+        bigint id
+        varchar username
         varchar nome
-        varchar password_hash
+        varchar password
         varchar role
         boolean ativo
     }
 
     CLIENTE {
-        bigint id PK
+        bigint id
         varchar nome
-        varchar cpf UK
-        varchar cnpj UK
-        varchar email UK
+        varchar cpf
+        varchar cnpj
+        varchar email
         varchar telefone
         jsonb endereco
-        timestamp data_cadastro
-        date data_nascimento
+        timestamp cadastro
+        date nascimento
         text observacao
         boolean ativo
     }
 
     VEICULO {
-        bigint id PK
-        varchar placa UK
+        bigint id
+        varchar placa
         varchar marca
         varchar modelo
         int ano
         varchar cor
         text observacoes
-        bigint cliente_id FK
-        timestamp data_cadastro
+        bigint cliente_id
+        timestamp cadastro
         boolean ativo
     }
 
     SERVICO {
-        bigint id PK
+        bigint id
         varchar nome
         text descricao
         varchar categoria
         numeric preco_base
-        int tempo_estimado
+        int tempo_min
         boolean ativo
     }
 
     PRODUTO {
-        bigint id PK
+        bigint id
         varchar nome
         text descricao
         varchar categoria
@@ -73,18 +73,18 @@ erDiagram
     }
 
     ESTOQUE {
-        bigint id PK
-        bigint produto_id FK_UK
-        int qtd_disponivel
-        int qtd_reservada
-        int estoque_minimo
+        bigint id
+        bigint produto_id
+        int qtd_disp
+        int qtd_reserv
+        int estoque_min
         numeric preco_custo
-        timestamp atualizado_em
+        timestamp atualizado
     }
 
     MOVIMENTACAO {
-        bigint id PK
-        bigint produto_id FK
+        bigint id
+        bigint produto_id
         varchar tipo
         int quantidade
         numeric preco_unit
@@ -93,31 +93,31 @@ erDiagram
     }
 
     ORDEMSERVICO {
-        bigint id PK
-        bigint cliente_id FK
-        bigint veiculo_id FK
-        bigint mecanico_id FK
+        bigint id
+        bigint cliente_id
+        bigint veiculo_id
+        bigint mecanico_id
         varchar status
         timestamp criada_em
-        timestamp inicio_exec
-        timestamp termino_exec
+        timestamp inicio
+        timestamp termino
         timestamp entrega
         text observacoes
     }
 
     ITEMORDEM {
-        bigint id PK
-        bigint ordem_id FK
-        bigint produto_id FK
-        bigint servico_id FK
+        bigint id
+        bigint ordem_id
+        bigint produto_id
+        bigint servico_id
         numeric valor_unit
         int quantidade
         text observacao
     }
 
     ORCAMENTO {
-        bigint id PK
-        bigint ordem_id FK_UK
+        bigint id
+        bigint ordem_id
         numeric valor_total
         varchar status
         timestamp criado_em
@@ -126,8 +126,8 @@ erDiagram
     }
 
     ITEMORCAMENTO {
-        bigint id PK
-        bigint orcamento_id FK
+        bigint id
+        bigint orcamento_id
         varchar descricao
         int quantidade
         numeric valor_unit
@@ -151,8 +151,10 @@ erDiagram
 
 ## 🔤 Mapeamento de Nomes
 
-| Diagrama (simplificado) | Banco de Dados (real) | Microserviço |
-|-------------------------|----------------------|--------------|
+### Tabelas
+
+| Diagrama | Banco de Dados | Microserviço |
+|----------|---------------|--------------|
 | `USUARIO` | `usuarios` | auth-service |
 | `CLIENTE` | `clientes` | customer-service |
 | `VEICULO` | `veiculos` | customer-service |
@@ -165,6 +167,18 @@ erDiagram
 | `ORCAMENTO` | `orcamentos` | budget-service |
 | `ITEMORCAMENTO` | `itens_orcamento` | budget-service |
 
+### Colunas Abreviadas
+
+| Diagrama | Banco de Dados |
+|----------|---------------|
+| `qtd_disp` | `quantidade_disponivel` |
+| `qtd_reserv` | `quantidade_reservada` |
+| `estoque_min` | `estoque_minimo` |
+| `preco_unit` | `preco_unitario` |
+| `data_mov` | `data_movimentacao` |
+| `valor_unit` | `valor_unitario` |
+| `tempo_min` | `tempo_estimado_minutos` |
+
 ---
 
 ## 🏢 Diagrama por Microserviço
@@ -174,10 +188,10 @@ erDiagram
 ```mermaid
 erDiagram
     USUARIO {
-        bigint id PK
-        varchar username UK
+        bigint id
+        varchar username
         varchar nome
-        varchar password_hash
+        varchar password
         varchar role
         boolean ativo
     }
@@ -185,7 +199,7 @@ erDiagram
 
 **Tabela real:** `usuarios`
 
-**Roles disponíveis:** ADMIN, CLIENTE, MECANICO, ATENDENTE, ESTOQUISTA
+**Roles:** ADMIN, CLIENTE, MECANICO, ATENDENTE, ESTOQUISTA
 
 ---
 
@@ -194,29 +208,29 @@ erDiagram
 ```mermaid
 erDiagram
     CLIENTE {
-        bigint id PK
+        bigint id
         varchar nome
-        varchar cpf UK
-        varchar cnpj UK
-        varchar email UK
+        varchar cpf
+        varchar cnpj
+        varchar email
         varchar telefone
         jsonb endereco
-        timestamp data_cadastro
-        date data_nascimento
+        timestamp cadastro
+        date nascimento
         text observacao
         boolean ativo
     }
 
     VEICULO {
-        bigint id PK
-        varchar placa UK
+        bigint id
+        varchar placa
         varchar marca
         varchar modelo
         int ano
         varchar cor
         text observacoes
-        bigint cliente_id FK
-        timestamp data_cadastro
+        bigint cliente_id
+        timestamp cadastro
         boolean ativo
     }
 
@@ -226,8 +240,9 @@ erDiagram
 **Tabelas reais:** `clientes`, `veiculos`
 
 **Constraints:**
-- Cliente: CPF **OU** CNPJ (não ambos)
-- Placa: Formato Mercosul (ABC1D23) ou antigo (ABC1234)
+- Cliente: CPF OU CNPJ (exclusivo)
+- Placa: Mercosul ou formato antigo
+- Ano: 1900 até atual+1
 
 ---
 
@@ -236,17 +251,17 @@ erDiagram
 ```mermaid
 erDiagram
     SERVICO {
-        bigint id PK
+        bigint id
         varchar nome
         text descricao
         varchar categoria
         numeric preco_base
-        int tempo_estimado
+        int tempo_min
         boolean ativo
     }
 
     PRODUTO {
-        bigint id PK
+        bigint id
         varchar nome
         text descricao
         varchar categoria
@@ -257,9 +272,9 @@ erDiagram
 
 **Tabelas reais:** `servicos`, `produtos_catalogo`
 
-**Categorias de Serviço:** MECANICO, ELETRICO, FREIOS, ALINHAMENTO, SUSPENSAO
+**Categorias Serviço:** MECANICO, ELETRICO, FREIOS, ALINHAMENTO, SUSPENSAO
 
-**Categorias de Produto:** PECA, INSUMO
+**Categorias Produto:** PECA, INSUMO
 
 ---
 
@@ -268,24 +283,24 @@ erDiagram
 ```mermaid
 erDiagram
     PRODUTO {
-        bigint id PK
+        bigint id
         varchar nome
         numeric preco
     }
 
     ESTOQUE {
-        bigint id PK
-        bigint produto_id FK_UK
-        int qtd_disponivel
-        int qtd_reservada
-        int estoque_minimo
+        bigint id
+        bigint produto_id
+        int qtd_disp
+        int qtd_reserv
+        int estoque_min
         numeric preco_custo
-        timestamp atualizado_em
+        timestamp atualizado
     }
 
     MOVIMENTACAO {
-        bigint id PK
-        bigint produto_id FK
+        bigint id
+        bigint produto_id
         varchar tipo
         int quantidade
         numeric preco_unit
@@ -299,9 +314,7 @@ erDiagram
 
 **Tabelas reais:** `produtos_catalogo`, `produtos_estoque`, `movimentacoes_estoque`
 
-**Relacionamento 1:1:** Cada produto tem exatamente um registro de estoque
-
-**Tipos de Movimentação:** ENTRADA, SAIDA
+**Tipos:** ENTRADA, SAIDA
 
 ---
 
@@ -310,50 +323,50 @@ erDiagram
 ```mermaid
 erDiagram
     CLIENTE {
-        bigint id PK
+        bigint id
         varchar nome
     }
 
     VEICULO {
-        bigint id PK
+        bigint id
         varchar placa
     }
 
     USUARIO {
-        bigint id PK
+        bigint id
         varchar nome
     }
 
     ORDEMSERVICO {
-        bigint id PK
-        bigint cliente_id FK
-        bigint veiculo_id FK
-        bigint mecanico_id FK
+        bigint id
+        bigint cliente_id
+        bigint veiculo_id
+        bigint mecanico_id
         varchar status
         timestamp criada_em
-        timestamp inicio_exec
-        timestamp termino_exec
+        timestamp inicio
+        timestamp termino
         timestamp entrega
         text observacoes
     }
 
     ITEMORDEM {
-        bigint id PK
-        bigint ordem_id FK
-        bigint produto_id FK
-        bigint servico_id FK
+        bigint id
+        bigint ordem_id
+        bigint produto_id
+        bigint servico_id
         numeric valor_unit
         int quantidade
         text observacao
     }
 
     SERVICO {
-        bigint id PK
+        bigint id
         varchar nome
     }
 
     PRODUTO {
-        bigint id PK
+        bigint id
         varchar nome
     }
 
@@ -369,8 +382,6 @@ erDiagram
 
 **Status:** RECEBIDA, EM_DIAGNOSTICO, AGUARDANDO_APROVACAO, EM_EXECUCAO, FINALIZADA, ENTREGUE, REPROVADA, CANCELADA
 
-**Constraint:** Cada item é **OU** produto **OU** serviço (não ambos)
-
 ---
 
 ### Budget Service
@@ -378,13 +389,13 @@ erDiagram
 ```mermaid
 erDiagram
     ORDEMSERVICO {
-        bigint id PK
+        bigint id
         varchar status
     }
 
     ORCAMENTO {
-        bigint id PK
-        bigint ordem_id FK_UK
+        bigint id
+        bigint ordem_id
         numeric valor_total
         varchar status
         timestamp criado_em
@@ -393,8 +404,8 @@ erDiagram
     }
 
     ITEMORCAMENTO {
-        bigint id PK
-        bigint orcamento_id FK
+        bigint id
+        bigint orcamento_id
         varchar descricao
         int quantidade
         numeric valor_unit
@@ -407,11 +418,7 @@ erDiagram
 
 **Tabelas reais:** `orcamentos`, `itens_orcamento`
 
-**Relacionamento 1:1:** Cada OS tem exatamente um orçamento
-
 **Status:** CRIADO, APROVADO, REPROVADO
-
-**Computed Column:** `valor_total` = quantidade × valor_unitário
 
 ---
 
@@ -419,120 +426,76 @@ erDiagram
 
 ```mermaid
 graph TB
-    subgraph Auth[👤 Autenticação]
-        U[USUARIO]
-    end
-
-    subgraph Customer[👥 Clientes]
-        C[CLIENTE]
-        V[VEICULO]
-    end
-
-    subgraph Catalog[📦 Catálogo]
-        S[SERVICO]
-        P[PRODUTO]
-        E[ESTOQUE]
-        M[MOVIMENTACAO]
-    end
-
-    subgraph WorkOrder[🔧 Ordens]
-        OS[ORDEMSERVICO]
-        IO[ITEMORDEM]
-    end
-
-    subgraph Budget[💰 Orçamentos]
-        OR[ORCAMENTO]
-        IOR[ITEMORCAMENTO]
-    end
+    U[USUARIO]
+    C[CLIENTE]
+    V[VEICULO]
+    S[SERVICO]
+    P[PRODUTO]
+    E[ESTOQUE]
+    M[MOVIMENTACAO]
+    OS[ORDEMSERVICO]
+    IO[ITEMORDEM]
+    OR[ORCAMENTO]
+    IOR[ITEMORCAMENTO]
 
     C -->|1:N| V
     C -->|1:N| OS
     V -->|1:N| OS
-    U -.->|atribuído| OS
+    U -.-> OS
     OS -->|1:N| IO
     OS -->|1:1| OR
     OR -->|1:N| IOR
-    S -.->|referenciado| IO
+    S -.-> IO
     P -->|1:1| E
-    P -.->|referenciado| IO
+    P -.-> IO
     P -->|1:N| M
-
-    style C fill:#e3f2fd
-    style V fill:#e3f2fd
-    style U fill:#fff3e0
-    style S fill:#f3e5f5
-    style P fill:#f3e5f5
-    style E fill:#f3e5f5
-    style M fill:#f3e5f5
-    style OS fill:#e8f5e9
-    style IO fill:#e8f5e9
-    style OR fill:#fff9c4
-    style IOR fill:#fff9c4
 ```
 
 ---
 
 ## 📖 Legenda
 
-### Símbolos
-
-| Símbolo | Significado |
-|---------|-------------|
-| **PK** | Primary Key |
-| **FK** | Foreign Key |
-| **UK** | Unique Key |
-| **FK_UK** | Foreign Key única (relação 1:1) |
-
 ### Cardinalidades
 
-| Notação | Significado | Exemplo |
-|---------|-------------|---------|
-| `\|\|--o{` | Um para muitos | Cliente → Veículos |
-| `\|\|--\|\|` | Um para um | Produto → Estoque |
-| `o\|--o{` | Zero ou um para muitos | Mecânico → OS |
+- `||--o{` = Um para muitos
+- `||--||` = Um para um
+- `o|--o{` = Zero ou um para muitos
 
-### Cores
+### ON DELETE
 
-| Cor | Contexto | Microserviço |
-|-----|----------|-------------|
-| 🔵 Azul | Clientes/Veículos | customer-service |
-| 🟠 Laranja | Autenticação | auth-service |
-| 🟣 Roxo | Catálogo/Estoque | catalog-service, inventory-service |
-| 🟢 Verde | Ordens de Serviço | work-order-service |
-| 🟡 Amarelo | Orçamentos | budget-service |
+| Ação | Quando Usar |
+|------|-------------|
+| **RESTRICT** | Impede deleção (clientes, produtos) |
+| **CASCADE** | Deleta em cascata (itens, detalhes) |
+| **SET NULL** | Define NULL (mecânico opcional) |
 
 ---
 
-## 📊 Tabela de Foreign Keys
+## 📊 Foreign Keys
 
-| Tabela | FK | Destino | ON DELETE | Motivo |
-|--------|-----|---------|-----------|--------|
-| veiculos | cliente_id | clientes | RESTRICT | Não deletar cliente com veículos |
-| ordens_servico | cliente_id | clientes | RESTRICT | Não deletar cliente com OS |
-| ordens_servico | veiculo_id | veiculos | RESTRICT | Não deletar veículo com OS |
-| ordens_servico | mecanico_id | usuarios | SET NULL | Mecânico pode sair |
-| itens_ordem_servico | ordem_servico_id | ordens_servico | CASCADE | Deletar itens com OS |
-| itens_ordem_servico | produto_catalogo_id | produtos_catalogo | RESTRICT | Não deletar produto em uso |
-| itens_ordem_servico | servico_id | servicos | RESTRICT | Não deletar serviço em uso |
-| produtos_estoque | produto_catalogo_id | produtos_catalogo | CASCADE | Estoque segue produto |
-| movimentacoes_estoque | produto_catalogo_id | produtos_catalogo | RESTRICT | Preservar histórico |
-| orcamentos | ordem_servico_id | ordens_servico | CASCADE | Orçamento é parte da OS |
-| itens_orcamento | orcamento_id | orcamentos | CASCADE | Itens seguem orçamento |
+| Tabela | FK | Destino | ON DELETE |
+|--------|-----|---------|-----------|
+| veiculos | cliente_id | clientes | RESTRICT |
+| ordens_servico | cliente_id | clientes | RESTRICT |
+| ordens_servico | veiculo_id | veiculos | RESTRICT |
+| ordens_servico | mecanico_id | usuarios | SET NULL |
+| itens_ordem_servico | ordem_servico_id | ordens_servico | CASCADE |
+| produtos_estoque | produto_catalogo_id | produtos_catalogo | CASCADE |
+| movimentacoes_estoque | produto_catalogo_id | produtos_catalogo | RESTRICT |
+| orcamentos | ordem_servico_id | ordens_servico | CASCADE |
+| itens_orcamento | orcamento_id | orcamentos | CASCADE |
 
 ---
 
 ## 📊 Estatísticas
 
-| Métrica | Quantidade |
-|---------|-----------|
-| **Tabelas** | 11 |
-| **Colunas** | ~80 |
-| **Foreign Keys** | 11 |
-| **Unique Constraints** | 8 |
-| **Check Constraints** | 15 |
-| **Índices** | 25+ |
-| **Relacionamentos 1:1** | 2 |
-| **Relacionamentos 1:N** | 9 |
+- **Tabelas:** 11
+- **Foreign Keys:** 11
+- **Unique Constraints:** 8
+- **Check Constraints:** 15
+- **Índices:** 25+
+- **Relacionamentos 1:1:** 2
+- **Relacionamentos 1:N:** 9
 
 ---
 
@@ -555,21 +518,19 @@ WHERE c.id = 1
 ORDER BY os.criada_em DESC;
 ```
 
-### Produtos com estoque baixo
+### Estoque baixo
 
 ```sql
 SELECT 
     pc.nome,
     pe.quantidade_disponivel,
-    pe.estoque_minimo,
-    (pe.estoque_minimo - pe.quantidade_disponivel) AS deficit
+    pe.estoque_minimo
 FROM produtos_estoque pe
 JOIN produtos_catalogo pc ON pc.id = pe.produto_catalogo_id
-WHERE pe.quantidade_disponivel < pe.estoque_minimo
-ORDER BY deficit DESC;
+WHERE pe.quantidade_disponivel < pe.estoque_minimo;
 ```
 
-### Total de uma OS
+### Total de OS
 
 ```sql
 SELECT 
@@ -586,8 +547,8 @@ GROUP BY os.id;
 ## 📚 Referências
 
 - [Mermaid ER Syntax](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
-- [PostgreSQL Foreign Keys](https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK)
-- [GitHub Mermaid Support](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
+- [PostgreSQL Constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)
+- [GitHub Mermaid](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams)
 
 ---
 
@@ -596,10 +557,9 @@ GROUP BY os.id;
 | Versão | Data | Descrição |
 |--------|------|-----------|
 | 1.0.0 | 2024-12-30 | Versão inicial |
-| 1.0.1 | 2024-12-30 | Correção para GitHub (nomes curtos) |
+| 1.1.0 | 2024-12-30 | Correção formatação GitHub |
 
 ---
 
 **Repositório:** [infra-database](https://github.com/seu-usuario/infra-database)  
-**Autor:** Equipe Tech Challenge FIAP  
 **Status:** ✅ Aprovado
