@@ -8,7 +8,6 @@ resource "null_resource" "create_tables" {
   triggers = {
     schema_version = filemd5("${path.module}/scripts/tables.sql")
     database_name  = var.database_name
-    schema_name    = var.environment
     cluster_id     = data.aws_rds_cluster.cluster.id
   }
 
@@ -115,7 +114,6 @@ resource "null_resource" "create_tables" {
            -U ${data.aws_rds_cluster.cluster.master_username} \
            -d postgres \
            -v database_name=${var.database_name} \
-           -v schema_name=${var.environment} \
            -f ${path.module}/scripts/tables.sql
       
       echo ""
