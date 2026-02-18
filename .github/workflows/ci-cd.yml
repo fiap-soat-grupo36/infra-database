@@ -1,0 +1,96 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - hotfix/*
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  ci-infra:
+    if: startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/hotfix/') || github.ref == 'refs/heads/develop'
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./infra
+      auto_apply: false
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  pr-to-develop:
+    if: >-
+      (success() && (startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/hotfix/')))
+    needs: ci-infra
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
+    with:
+      base: develop
+      title: "WIP: PR automático de ${{ github.ref_name }} para develop"
+      body: |
+        PR criado automaticamente após CI bem-sucedido na branch ${{ github.ref_name }}.
+      draft: true
+      labels: '["work-in-progress", "ci-auto"]'
+
+  cd-infra:
+    if: github.ref == 'refs/heads/develop'
+    needs: ci-infra
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./infra
+      auto_apply: true
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  ci-sql:
+    if: github.ref == 'refs/heads/develop'
+    needs: cd-infra
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./sql
+      auto_apply: false
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  cd-sql:
+    if: github.ref == 'refs/heads/develop'
+    needs: ci-sql
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./sql
+      auto_apply: true
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  pr-to-main:
+    if: success() && github.ref == 'refs/heads/develop'
+    needs: cd-sql
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
+    with:
+      base: main
+      head: develop
+      title: "Release: ${{ github.ref_name }} para main"
+      body: |
+        Release automático após CD bem-sucedido na develop.
+      draft: false
+      labels: '["release", "production"]'
