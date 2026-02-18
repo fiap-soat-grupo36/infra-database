@@ -1,0 +1,91 @@
+name: Deploy SQL Database
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - hotfix/*
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  verify-sql:
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./sql
+      tfvars_file: ${{ github.ref == 'refs/heads/main' && 'environments/prod.tfvars' || 'environments/dev.tfvars' }}
+      auto_apply: false
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  create-draft-pr:
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop'
+    needs: verify-sql
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
+    with:
+      base: develop
+      title: "WIP: SQL Database - ${{ github.ref_name }}"
+      body: |
+        ## Work in Progress
+        
+        Alterações no banco de dados SQL.
+      draft: true
+      labels: '["work-in-progress", "database", "sql"]'
+
+  create-pr:
+    if: github.ref == 'refs/heads/develop'
+    needs: verify-sql
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
+    with:
+      base: main
+      head: develop
+      title: "🚀 Release: SQL Database"
+      body: |
+        ## Release Notes
+        
+        Deploy de alterações do banco de dados para produção.
+        
+        ---
+        **Ready for:** Production deployment
+      labels: '["release", "production", "database"]'
+      draft: false
+
+  deploy-sql-dev:
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    needs: verify-sql
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./sql
+      tfvars_file: 'environments/dev.tfvars'
+      auto_apply: true
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  deploy-sql-prod:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: verify-sql
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: prod
+      environment: prod
+      working_directory: ./sql
+      tfvars_file: 'environments/prod.tfvars'
+      auto_apply: true
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
