@@ -21,8 +21,8 @@ jobs:
   verify-sql:
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
-      workspace: prod
-      environment: prod
+      workspace: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
       working_directory: ./sql
       tfvars_file: ${{ github.ref == 'refs/heads/main' && 'environments/prod.tfvars' || 'environments/dev.tfvars' }}
       auto_apply: false
@@ -67,8 +67,8 @@ jobs:
     needs: verify-sql
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
-      workspace: prod
-      environment: prod
+      workspace: dev
+      environment: dev
       working_directory: ./sql
       tfvars_file: 'environments/dev.tfvars'
       auto_apply: true

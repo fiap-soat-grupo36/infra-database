@@ -21,8 +21,8 @@ jobs:
   verify-infrastructure:
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
-      workspace: prod
-      environment: prod
+      workspace: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
       working_directory: ./infra
       auto_apply: false
       localstack_pod: fiap
@@ -66,8 +66,8 @@ jobs:
     needs: verify-infrastructure
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
-      workspace: prod
-      environment: prod
+      workspace: dev
+      environment: dev
       working_directory: ./infra
       auto_apply: true
       localstack_pod: fiap
