@@ -1,16 +1,6 @@
 name: Deploy SQL Database
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-      - feature/*
-      - hotfix/*
-  pull_request:
-    branches:
-      - main
-      - develop
   workflow_run:
     workflows: ["Deploy RDS Infrastructure"]
     types:
@@ -26,56 +16,20 @@ permissions:
 
 jobs:
   verify-sql:
-    if: github.event_name != 'workflow_run'
+    if: github.event.workflow_run.conclusion == 'success'
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
-      workspace: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
-      environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      workspace: ${{ github.event.workflow_run.head_branch == 'main' && 'prod' || 'dev' }}
+      environment: ${{ github.event.workflow_run.head_branch == 'main' && 'prod' || 'dev' }}
       working_directory: ./sql
-      tfvars_file: ${{ github.ref == 'refs/heads/main' && 'environments/prod.tfvars' || 'environments/dev.tfvars' }}
+      tfvars_file: ${{ github.event.workflow_run.head_branch == 'main' && 'environments/prod.tfvars' || 'environments/dev.tfvars' }}
       auto_apply: false
       localstack_pod: fiap
     secrets:
       LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
 
-  create-draft-pr:
-    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' && github.event_name != 'workflow_run'
-    needs: verify-sql
-    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
-    with:
-      base: develop
-      title: "WIP: SQL Database - ${{ github.ref_name }}"
-      body: |
-        ## Work in Progress
-        
-        Alterações no banco de dados SQL.
-      draft: true
-      labels: '["work-in-progress", "database", "sql"]'
-
-  create-pr:
-    if: github.ref == 'refs/heads/develop' && github.event_name != 'workflow_run'
-    needs: verify-sql
-    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
-    with:
-      base: main
-      head: develop
-      title: "🚀 Release: SQL Database"
-      body: |
-        ## Release Notes
-        
-        Deploy de alterações do banco de dados para produção.
-        
-        ---
-        **Ready for:** Production deployment
-      labels: '["release", "production", "database"]'
-      draft: false
-
   deploy-sql-dev:
-    if: |
-      always() &&
-      (needs.verify-sql.result == 'success' || needs.verify-sql.result == 'skipped') &&
-      ((github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop' && github.event_name == 'workflow_run'))
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop'
     needs: verify-sql
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
@@ -89,11 +43,7 @@ jobs:
       LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
 
   deploy-sql-prod:
-    if: |
-      always() &&
-      (needs.verify-sql.result == 'success' || needs.verify-sql.result == 'skipped') &&
-      ((github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event_name == 'workflow_run'))
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     needs: verify-sql
     uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
     with:
