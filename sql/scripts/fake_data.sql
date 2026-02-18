@@ -5,6 +5,7 @@
 -- Ambiente: APENAS DEV/HOMOLOG (NÃO RODAR EM PRODUÇÃO!)
 -- Descrição: Popula o banco com dados fictícios para testes
 -- ============================================================================
+\c :database_name
 
 \echo '🔄 Carregando dados de teste...'
 

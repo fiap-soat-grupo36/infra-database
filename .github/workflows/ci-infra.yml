@@ -1,0 +1,75 @@
+name: Deploy RDS Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - hotfix/*
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  verify-infrastructure:
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      environment: ${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+      working_directory: ./infra
+      auto_apply: false
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
+
+  create-draft-pr:
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop'
+    needs: verify-infrastructure
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
+    with:
+      base: develop
+      title: "WIP: RDS Infrastructure - ${{ github.ref_name }}"
+      body: |
+        ## Work in Progress
+        
+        Alterações na infraestrutura do RDS.
+      draft: true
+      labels: '["work-in-progress", "infrastructure", "database"]'
+
+  create-pr:
+    if: github.ref == 'refs/heads/develop'
+    needs: verify-infrastructure
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-create-pr.yml@main
+    with:
+      base: main
+      head: develop
+      title: "🚀 Release: RDS Infrastructure"
+      body: |
+        ## Release Notes
+        
+        Deploy de infraestrutura do RDS para produção.
+        
+        ---
+        **Ready for:** Production deployment
+      labels: '["release", "production", "infrastructure"]'
+      draft: false
+
+  deploy-infrastructure:
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    needs: verify-infrastructure
+    uses: fiap-soat-grupo36/reusable-actions/.github/workflows/_reusable-terraform.yml@main
+    with:
+      workspace: dev
+      environment: dev
+      working_directory: ./infra
+      auto_apply: true
+      localstack_pod: fiap
+    secrets:
+      LOCALSTACK_AUTH_TOKEN: ${{ secrets.LOCALSTACK_AUTH_TOKEN }}
